@@ -32,7 +32,7 @@ Please refer to readme.md to read the annotated source.
       var r = function (path, value) {
          if (teishi.stop ('r', [
             ['path', path, 'array'],
-            ['path', path, ['number', 'string'], 'eachOf'],
+            ['path', path, ['integer', 'string'], 'eachOf'],
          ])) return;
 
          var result = pick (path);
@@ -48,7 +48,7 @@ Please refer to readme.md to read the annotated source.
       r.set = function (path, data, value) {
          if (teishi.stop ('r.set', [
             ['path', path, 'array'],
-            ['path', path, ['number', 'string'], 'eachOf'],
+            ['path', path, ['integer', 'string'], 'eachOf'],
          ])) return;
 
          var item = data;

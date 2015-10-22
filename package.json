@@ -1,0 +1,25 @@
+{
+   "name": "recalc",
+   "version": "0.1.0",
+   "description": "Tool for using data to trigger code paths.",
+   "dependencies": {
+      "dale": "2.4.0",
+      "teishi": "3.1.2"
+   },
+   "main": "recalc.js",
+   "author": "Federico Pereiro <fpereiro@gmail.com>",
+   "contributors": ["Federico Pereiro <fpereiro@gmail.com>"],
+   "license": [{
+      "type": "Public Domain",
+      "url": "http://github.com/fpereiro/recalc#license"
+   }],
+   "keywords": ["data binding", "reactive", "autopoiesis"],
+   "repository" : {
+      "type": "git",
+      "url": "http://github.com/fpereiro/recalc.git"
+   },
+   "bugs": {
+      "url": "http://github.com/fpereiro/recalc/issues",
+      "email": "fpereiro@gmail.com"
+   }
+}

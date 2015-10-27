@@ -1,5 +1,5 @@
 /*
-recalc - v0.1.1
+recalc - v0.1.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -81,6 +81,11 @@ Please refer to readme.md to read the annotated source.
          var fun = r.pick (path);
          if (teishi.stop ('r.do', ['fun', fun, 'function'])) return;
          fun.apply (undefined, teishi.c (arguments).slice (1));
+      }
+
+      r.call = function (path, value, noQuote) {
+         if (noQuote) return 'r (' + teishi.s (path) + ', '  + value + ');';
+         else         return 'r (' + teishi.s (path) + ', "' + value + '");';
       }
 
       return r;

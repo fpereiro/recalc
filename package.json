@@ -1,6 +1,6 @@
 {
    "name": "recalc",
-   "version": "0.1.1",
+   "version": "0.1.2",
    "description": "Tool for using data to trigger code paths.",
    "dependencies": {
       "dale": "2.4.0",

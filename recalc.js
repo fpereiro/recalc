@@ -1,5 +1,5 @@
 /*
-recalc - v0.1.2
+recalc - v0.1.3
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -84,8 +84,9 @@ Please refer to readme.md to read the annotated source.
       }
 
       r.call = function (path, value, noQuote) {
-         if (noQuote) return 'r (' + teishi.s (path) + ', '  + value + ');';
-         else         return 'r (' + teishi.s (path) + ', "' + value + '");';
+         if (noQuote)                     return 'r (' + teishi.s (path) + ', '  + value + ');';
+         else if (teishi.complex (value)) return 'r (' + teishi.s (path) + ', ' + teishi.s (value) + ');';
+         else                             return 'r (' + teishi.s (path) + ', "' + value + '");';
       }
 
       return r;

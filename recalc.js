@@ -1,5 +1,5 @@
 /*
-recalc - v0.1.3
+recalc - v0.2.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -14,8 +14,10 @@ Please refer to readme.md to read the annotated source.
 
    var dale   = isNode ? require ('dale')   : window.dale;
    var teishi = isNode ? require ('teishi') : window.teishi;
+   var type   = teishi.t;
 
    var main = function (data, routes) {
+
       if (teishi.stop ([
          ['data', data, ['array', 'object'], 'oneOf'],
          ['routes', routes, 'array']
@@ -23,7 +25,7 @@ Please refer to readme.md to read the annotated source.
 
       var pick = function (path) {
          var output = data;
-         return dale.stopOn (path, false, function (v, k) {
+         return dale.stop (path, false, function (v, k) {
             if (k + 1 < path.length && teishi.simple (output [v])) return false;
             output = output [v];
          }) === false ? undefined : output;
@@ -55,19 +57,17 @@ Please refer to readme.md to read the annotated source.
 
          dale.do (path, function (v, k) {
             if (k + 1 === path.length) item [v] = value;
-            else                       item = item [v];
+            else {
+               if (item [v] === undefined) item [v] = (type (path [k + 1]) === 'string' ? {} : []);
+               item = item [v];
+            }
          });
-      }
-
-      r.path = function (path) {
-         if (teishi.stop ('r.path', ['path', path, 'array'])) return;
-         return path.join ('-');
       }
 
       r.match = function (path, routes) {
          var output = [];
          dale.do (routes, function (v) {
-            dale.stopOn (v [0], false, function (v2, k2) {
+            dale.stop (v [0], false, function (v2, k2) {
                if (path [k2] !== undefined && path [k2] !== '*' && v2 !== '*' && path [k2] !== v2) {
                   return false;
                }
@@ -77,22 +77,41 @@ Please refer to readme.md to read the annotated source.
          return output;
       }
 
-      r.do = function (path) {
-         var fun = r.pick (path);
-         if (teishi.stop ('r.do', ['fun', fun, 'function'])) return;
-         fun.apply (undefined, teishi.c (arguments).slice (1));
+      r.diff = function (obj1, obj2) {
       }
 
-      r.call = function (path, value, noQuote) {
-         if (noQuote)                     return 'r (' + teishi.s (path) + ', '  + value + ');';
-         else if (teishi.complex (value)) return 'r (' + teishi.s (path) + ', ' + teishi.s (value) + ');';
-         else                             return 'r (' + teishi.s (path) + ', "' + value + '");';
+      r.data = data;
+
+      r.routes = routes;
+
+      r.events = function (where) {
+         var maker = function (which, props) {
+            return function () {
+               var arg   = 0;
+               var obj   = type (arguments [arg]) === 'object' ? arguments [arg++] : {};
+               var path  = arguments [arg++];
+               var value = arguments [arg] === undefined ? 'this.value' : JSON.stringify (arguments [arg]);
+               if (where === 'select') value = 'this.selectedIndex';
+               var string = where + ' (' + JSON.stringify (path) + ', ' + value + ')';
+               if (which === 'fire') string = where + '.' + ['data'].concat (path).join ('.') + ' (' + value + ')';
+               return dale.obj (props, obj, function (v) {
+                  return [v, string];
+               });
+            }
+         }
+         return dale.obj ({
+            write: ['onchange', 'onkeyup', 'onkeydown'],
+            select: 'onchange',
+            click: 'onclick',
+            fire:  'onclick'
+         }, function (v, k) {
+            return [k, maker (k, v)];
+         });
       }
 
       return r;
    }
 
-   if (isNode) return main;
-   else        window.R = main;
+   return isNode ? main : window.R = main;
 
 }) ();

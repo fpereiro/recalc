@@ -2,7 +2,7 @@
 
 > "[T]hus, the external world would only have a triggering role in the release of the internally-determined activity of the nervous system." --Humberto Maturana
 
-> "Should that function take the whole world as input and return a brand new world as output? Why even use functional programming, then?" -- [James Hague](http://prog21.dadgum.com/26.html)
+> "Should that function take the whole world as input and return a brand new world as output? Why even use functional programming, then?" --[James Hague](http://prog21.dadgum.com/26.html)
 
 recalc is a library for reasoning functionally about side effects. The core ideas are to use events to pass *control* and a global store that is updated through events to pass *data*.
 
@@ -30,7 +30,7 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/1bb6973037dd409f667231d51c55845672d19821/dale.js"></script>
 <script src="https://cdn.rawgit.com/fpereiro/teishi/984e9295f7ef31cd04576b8f9ac015e1953aabc1/teishi.js"></script>
-<script src=""></script>
+<script src="https://cdn.rawgit.com/fpereiro/recalc/3995aa6c02a444680aafc1304548b3964aa46b20/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -57,7 +57,7 @@ This library is an attempt to answer that question.
 
 If we can't get rid of side effects, we can instead embrace them without forgetting our functional roots. We can consider that each side effect is an *event*. When a side effect comes in, we make our program fire an event. And here's the kicker: there might be one or more listeners for a given event. Those listeners are simply functions that then operate in consequence. In this way, you can work on the problem of passing control around when side effects come into the picture.
 
-The other question is: how do we pass data around? Since there might be multiple listeners to an event, operating sequentially or parallely, it would be messy to depend on return values. Instead, we can create a central object where we can store all the state of the application. A *global object* (I hope you're cringing now).
+The other question is: how do we pass data around? Since there might be multiple listeners to an event, operating sequentially or parallely, it would be messy to depend on return values. Instead, we can create a central object where we can store all the state of the application. A *global object* shared by all functions (I hope you're cringing now), which we call the *store*.
 
 But wait! If these events and their handlers modify this global object, wouldn't be this merely be imperative programming? It would, except for one catch: data changes on the global state can also be expressed as events, to which functions can respond/react. So you don't just increment a variable. You increment it through an event that notifies everyone concerned.
 
@@ -73,7 +73,7 @@ Let's assume that the recalc library has been loaded at the variable `R` (this s
 var r = R ();
 ```
 
-`r` will be now our recalc object. The reason for we use a [constructor](https://en.wikipedia.org/wiki/Constructor_(object-oriented_programming)) (instead of directly making `R` a recalc object) is that you may need to have multiple recalc objects at the same time.
+`r` will be now our recalc object. The reason we use a [constructor](https://en.wikipedia.org/wiki/Constructor_(object-oriented_programming)) (instead of directly making `R` a recalc object) is that you may need to have multiple recalc objects at the same time; by executing the constructor more than once, you can get as many recalc objects as needed.
 
 Every recalc object has five elements that you need to understand in order to use the library. The first two are objects, the other three are functions:
 
@@ -134,10 +134,12 @@ You can pass unlimited additional arguments when you fire an event. These argume
 r.do ('fire', ['hello', 1], 'foo', 'bar');
 ```
 
-You can also use wildcards for both verbs and paths. For example, this event (which you should use sparingly, if ever) will trigger all the routes:
+You can also use wildcards for both verbs and paths. For example:
 
 ```javascript
 r.do ('*', '*');
+r.do ('fire', '*');
+r.do ('fire', ['hello', '*']);
 ```
 
 Wildcards are further explored in the next section - to really understand them, we need to understand how routes are matched against a new event.
@@ -278,10 +280,10 @@ r.do ('fire', 'hello', function (x) {
 
 The above async route function does two things that every async route function should do:
 
-1) Call `x.cb` from within the asynchronous callback, to resume execution of further matching routes.
-2) Return `x.cb`, to notify recalc that this is an async function and it should not keep on executing other routes synchronously.
+1. Call `x.cb` from within the asynchronous callback, to resume execution of further matching routes.
+2. Return `x.cb`, to notify recalc that this is an async function and it should not keep on executing other routes synchronously.
 
-Interestingly enough, if you don't want to resume the execution of further routes, you can skip 1). This may be handy in case of an error.
+Interestingly enough, if you don't want to resume the execution of further routes, you can skip the call to `x.cb` from within the asynchronous callback. This may be handy in case of an error.
 
 Regarding the issue of calling events from within a route handler (something which is both possible and encouraged), it can be done freely as long as the events trigger routes with synchronous route functions. If, however, you trigger an event that triggers one or more asynchronous route functions, you should do that as the *last* thing within the body of your route function, in order to preserve the sequence. Not only that, you should also return `x.cb` in order to signal that this operation was async, and hence your route function is async as well.
 

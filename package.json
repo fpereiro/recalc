@@ -1,10 +1,10 @@
 {
    "name": "recalc",
-   "version": "0.2.1",
+   "version": "1.0.0",
    "description": "Functional side effects.",
    "dependencies": {
-      "dale": "3.1.0",
-      "teishi": "3.1.5"
+      "dale": "4.1.0",
+      "teishi": "3.9.0"
    },
    "main": "recalc.js",
    "author": "Federico Pereiro <fpereiro@gmail.com>",

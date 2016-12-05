@@ -1,9 +1,9 @@
 /*
-recalc - v0.2.1
+recalc - v1.0.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
-Please refer to readme.md to read the annotated source.
+Please refer to readme.md to read the annotated source (but not yet!).
 */
 
 (function () {
@@ -14,104 +14,147 @@ Please refer to readme.md to read the annotated source.
 
    var dale   = isNode ? require ('dale')   : window.dale;
    var teishi = isNode ? require ('teishi') : window.teishi;
-   var type   = teishi.t;
+   var type   = teishi.t, stop = teishi.stop;
 
-   var main = function (data, routes) {
+   // *** CONSTRUCTOR ***
 
-      if (teishi.stop ([
-         ['data', data, ['array', 'object'], 'oneOf'],
-         ['routes', routes, 'array']
+   var main = function (store) {
+
+      if (stop ([
+         ['store', store, ['array', 'object', 'undefined'], 'oneOf']
       ])) return;
 
-      var pick = function (path) {
-         var output = data;
-         return dale.stop (path, false, function (v, k) {
-            if (k + 1 < path.length && teishi.simple (output [v])) return false;
-            output = output [v];
-         }) === false ? undefined : output;
+      // *** FRONTEND ***
+
+      var r = {};
+
+      r.routes  = [];
+      r.store   = store || {};
+
+      r.do = function (verb, path) {
+
+         if (teishi.simple (path)) path = [path];
+
+         if (stop ('r', [
+            ['verb', verb, 'string'],
+            ['path', path, 'array'],
+            function () {
+               return ['path length', path.length, {min: 1}, teishi.test.range];
+            },
+            ['path', path, ['integer', 'string'], 'eachOf']
+         ])) return false;
+
+         r.mill.apply (null, arguments);
+         return true;
       }
 
-      var r = function (path, value) {
-         if (teishi.stop ('r', [
-            ['path', path, 'array'],
-            ['path', path, ['integer', 'string'], 'eachOf'],
-         ])) return;
+      r.listen = function (opts, rfun) {
 
-         var result = pick (path);
-         if (result === value) return;
-         r.set (path, data, value);
-         dale.do (r.match (path, routes), function (v) {
-            v (path, value, result);
+         opts = opts || {};
+
+         if (teishi.simple (opts.path)) opts.path = [opts.path];
+
+         if (teishi.stop ('r.radd', [
+            ['opts',   opts, 'object'],
+            function () {return [
+               ['opts.verb',     opts.verb, 'string'],
+               ['opts.path',     opts.path, 'array', 'oneOf'],
+               ['opts.path',     opts.path,     ['integer', 'string'], 'eachOf'],
+               ['opts.id',       opts.id,       ['string', 'integer', 'undefined'], 'oneOf'],
+               ['opts.parent',   opts.parent,   ['string', 'integer', 'undefined'], 'oneOf'],
+               ['opts.priority', opts.priority, ['undefined', 'integer'],           'oneOf']
+            ]},
+            ['route function', rfun, 'function']
+         ])) return false;
+
+         if (opts.id && dale.stopNot (r.routes, undefined, function (v) {
+            if (v.id === opts.id) return v;
+         })) return teishi.l ('r.radd', 'a route with id', opts.id, 'already exists.');
+
+         opts.id = opts.id || r.random ();
+
+         r.routes.push (dale.obj (['parent', 'priority'], {id: opts.id, verb: opts.verb, path: opts.path, rfun: rfun}, function (v) {
+            if (opts [v]) return [v, opts [v]];
+         }));
+
+         return true;
+      }
+
+      r.forget = function (id) {
+         var index, children = [];
+         dale.do (r.routes, function (v, k) {
+            if (v.id     === id) index = k;
+            if (v.parent === id) children.push (v.id);
          });
+
+         r.routes.splice (index, 1);
+         dale.do (children, r.forget);
       }
 
-      r.pick = pick;
+      // *** BACKEND ***
 
-      r.set = function (path, data, value) {
-         if (teishi.stop ('r.set', [
-            ['path', path, 'array'],
-            ['path', path, ['integer', 'string'], 'eachOf'],
-         ])) return;
+      r.mill = function (verb, path) {
 
-         var item = data;
+         var args = [{verb: arguments [0], path: arguments [1]}].concat (teishi.c (arguments).slice (2));
 
-         dale.do (path, function (v, k) {
-            if (k + 1 === path.length) item [v] = value;
-            else {
-               if (item [v] === undefined) item [v] = (type (path [k + 1]) === 'string' ? {} : []);
-               item = item [v];
+         var inner = function (matching) {
+
+            if (matching.length === 0) return;
+            args [0].cb = function () {
+               inner (matching);
             }
-         });
+
+            var result = matching.shift ().rfun.apply (null, args);
+            if (type (result) !== 'function') inner (matching);
+         }
+
+         inner (r.sort (r.match (verb, path, r.routes)));
       }
 
-      r.match = function (path, routes) {
-         var output = [];
-         dale.do (routes, function (v) {
-            dale.stop (v [0], false, function (v2, k2) {
-               if (path [k2] !== undefined && path [k2] !== '*' && v2 !== '*' && path [k2] !== v2) {
+      r.match = function (verb, path, routes) {
+
+         var matching = [];
+
+         dale.do (routes, function (route) {
+
+            // If verb and route verb are not a wildcard and it doesn't match the verb, skip the route.
+            if (verb !== '*' && route.verb !== '*' && route.verb !== verb) return;
+
+            if (route.path.length > path.length) return;
+
+            // Iterate through the route path, stop on false.
+            dale.stop (route.path, false, function (v2, k2) {
+
+               // If the kth element of the path is not undefined AND it is not a wildcard AND the corresponding element of the route path is not a wildcard AND the kth path element and the kth route path element are not equal, return false and stop the loop.
+               if (path [k2] !== undefined && path [k2] !== '*' && v2 !== '*' && path [k2] !== v2) return false;
+
+               // If the kth element of the path is equal to the length of the route path push the route.
+               if (k2 === route.path.length - 1) {
+                  matching.push (route);
                   return false;
                }
-               if (k2 === v [0].length - 1) output.push (v [1]);
             });
          });
-         return output;
+
+         return matching;
       }
 
-      r.diff = function (obj1, obj2) {
-      }
-
-      r.data = data;
-
-      r.routes = routes;
-
-      r.events = function (where) {
-         var maker = function (which, props) {
-            return function () {
-               var arg   = 0;
-               var obj   = type (arguments [arg]) === 'object' ? arguments [arg++] : {};
-               var path  = arguments [arg++];
-               var value = arguments [arg] === undefined ? 'this.value' : JSON.stringify (arguments [arg]);
-               if (where === 'select') value = 'this.selectedIndex';
-               var string = where + ' (' + JSON.stringify (path) + ', ' + value + ')';
-               if (which === 'fire') string = where + '.' + ['data'].concat (path).join ('.') + ' (' + value + ')';
-               return dale.obj (props, obj, function (v) {
-                  return [v, string];
-               });
-            }
-         }
-         return dale.obj ({
-            write: ['onchange', 'onkeyup', 'onkeydown'],
-            select: 'onchange',
-            click: 'onclick',
-            fire:  'onclick'
-         }, function (v, k) {
-            return [k, maker (k, v)];
+      r.sort = function (matching) {
+         return matching.sort (function (a, b) {
+            var p1 = a.priority || 0;
+            var p2 = b.priority || 0;
+            return p2 - p1;
          });
+      }
+
+      r.random = function () {
+         return Math.random ().toString (16).slice (2);
       }
 
       return r;
    }
 
-   return isNode ? main : window.R = main;
+   if (isNode) module.exports  = main;
+   else        window.R        = main;
 
 }) ();

@@ -8,7 +8,11 @@ recalc is a library for reasoning functionally about side effects. The core idea
 
 ## Current status of the project
 
-The current version of recalc, v1.0.0, is considered to be *unstable* and *incomplete*. [Suggestions](https://github.com/fpereiro/lith/issues) and [patches](https://github.com/fpereiro/lith/pulls) are welcome. Future changes are to be expected.
+The current version of recalc, v3.0.0, is considered to be *somewhat stable* and *somewhat complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
+
+- Add annotated source code.
+- Test the library in older browsers and improve the polyfill.
+- Performance improvements.
 
 ## Installation
 
@@ -28,9 +32,9 @@ recalc is written in Javascript. You can use it in the browser by sourcing the d
 Or you can use these links to use the latest version - courtesy of [RawGit](https://rawgit.com) and [MaxCDN](https://maxcdn.com).
 
 ```html
-<script src="https://cdn.rawgit.com/fpereiro/dale/1bb6973037dd409f667231d51c55845672d19821/dale.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/teishi/984e9295f7ef31cd04576b8f9ac015e1953aabc1/teishi.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/recalc/3995aa6c02a444680aafc1304548b3964aa46b20/recalc.js"></script>
+<script src="https://cdn.rawgit.com/fpereiro/dale/a168912fdffddadb84a662f10e8bfa76d8e11beb/dale.js"></script>
+<script src="https://cdn.rawgit.com/fpereiro/teishi/29fb21807975f3e8491276a96815421b48730b2b/teishi.js"></script>
+<script src=""></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -85,7 +89,7 @@ Every recalc object has five elements that you need to understand in order to us
 
 ### `r.routes`
 
-The `routes` object is an array that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `routes`, and executes those that match the event being fired.
+The `routes` object is an object that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `routes`, and executes those that match the event being fired.
 
 We have chosen to name these elements as `routes` instead of `event handlers`, because of the evocative power and associations of the first term.
 
@@ -151,7 +155,7 @@ This function is the one in charge of placing routes into `r.routes`. Every time
 - `opts`, an object which contains at least a `verb` and a `path`. The `verb` and `path` are exactly like those passed to `r.do`.
 - `rfun`, the function that will be executed when the route is matched. `rfun` is short for `route function`.
 
-As with `r.do`, if you pass an invalid route, this function will return `false`, otherwise it will return `true`.
+As with `r.do`, if you pass an invalid route, this function will return `false`, otherwise it will return the `id` of the route.
 
 For example, to match the last event we showed on the last section, we could write a route like this:
 
@@ -217,11 +221,12 @@ r.do ('*', ['hello', '*']);
 
 To close this rather long section, let's now see what additional `opts` can be passed to a route. All of them are optional:
 
-- `id`: a string or integer that will uniquely identify a route. If you don't pass one, `r.listen` will generate one for you.
+- `id`: a string or integer that will uniquely identify a route. If you don't pass one, `r.listen` will generate one for you. This `id` will be used as the key where the route is bound - for example, if `opts.id === 'hello'`, the route will be stored at `r.routes.hello`. If you pass an `id` that's already being used by another route, an error will be printed and `r.listen` will return `false`.
 - `parent`: a string or integer that will represent the `id` of this route. By default this is `undefined`. The purpose of this will be explained below when we explain `r.forget`.
 - `priority`: an integer value. By default this is `undefined`. The higher the value, the sooner this route will be executed in case of a match.
+- `burn`: a boolean value. By default this is `undefined`. When you set it to `true`, the route will auto-destroy after being matched/executed a single time. This allows you to create one-off events that later disappear, hence allowing you to keep clean the event space.
 
-This last property reminds us that it is perfectly normal to have more than one route matching a certain event. `priority` simply lets us make certain routes to be executed ahead of others. Again, I have pragmatic reasons for this, but still no carefully considered rationale. Routes of equal priority are run in the order in which they were added to `r.routes`.
+This last property reminds us that it is perfectly normal to have more than one route matching a certain event. `priority` simply lets us make certain routes to be executed ahead of others. Again, I have pragmatic reasons for this, but still no carefully considered rationale. Routes of equal priority are run in arbitrary order - to ensure a specific sequence, you need to use the `priority` parameter.
 
 It is also perfectly possible to have *zero* routes matching a certain event.
 
@@ -230,6 +235,8 @@ It is also perfectly possible to have *zero* routes matching a certain event.
 This function allows us to remove routes. It receives a single argument, `id`, which should be a string or integer. This `id` is the one of the route we are removing.
 
 If you call `r.forget ('foo')`, this will also remove all the routes that have `'foo'` as its parent, plus all their children. In effect, the `parent` property of the route allows for tree-like deletion of routes.
+
+Finally, if you call `r.forget ('foo')` and there's no route named `foo`, this function will return `false` and print an error.
 
 ### Route functions
 
@@ -303,7 +310,7 @@ The two functions above will set the third element of `r.store` to the value `'s
 
 ## Implementation functions
 
-There's four other functions that support the usage functions. If you override them, you can change the behavior of recalc. These are:
+There's four other functions that support the usage functions. If you override them, you can change the innards of recalc. These are:
 
 - `r.random`, a function for generating random ids for new routes.
 - `r.mill`, the function that gets executed by `r.do` when an event is fired - it represents the core engine of the library.

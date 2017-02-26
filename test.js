@@ -1,5 +1,5 @@
 /*
-recalc - v1.0.0
+recalc - v3.0.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -50,7 +50,7 @@ To run the tests:
             ['R () array store',   R ([]).store, 'array'],
             ['R () object store',  R ({a: 'b'}).store.a,     'b', teishi.test.equal],
             ['R () object store',  R (['a', 'b']).store [1], 'b', teishi.test.equal],
-            ['r.routes', R ().routes, 'array']
+            ['r.routes', R ().routes, 'object']
          ]}
       ], function (err) {
          error (R (), err);
@@ -75,9 +75,10 @@ To run the tests:
 
    tests.push (function () {
       var r = R ();
-      r.listen ({verb: 'do', path: '*'}, function (x, arg1, arg2) {
+      var id = r.listen ({verb: 'do', path: '*'}, function (x, arg1, arg2) {
          if (arg1 !== 'foo' || arg2 !== 'bar') return error (r, 'Extra arguments weren\'t passed to rfun.');
       });
+      if (type (id) !== 'string') return error (r, 'r.listen didn\'t return id of the created route.');
       r.do ('do', '*', 'foo', 'bar');
    });
 
@@ -105,10 +106,10 @@ To run the tests:
             return x.cb;
          },
          function () {
-            if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed in order.');
+            if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed in order: ' + r.store.value);
          }
-      ], function (v) {
-         r.listen ({verb: 'fire', path: '*'}, v);
+      ], function (v, k) {
+         r.listen ({verb: 'fire', path: '*', priority: 2 - k}, v);
       });
       r.do ('fire', '*');
    });
@@ -163,8 +164,8 @@ To run the tests:
          function () {
             if (r.store.value !== 'ab') return error (r, 'Sequence error.');
          }
-      ], function (v) {
-         r.listen ({verb: 'do', path: 'it'}, v);
+      ], function (v, k) {
+         r.listen ({verb: 'do', path: 'it', priority: 2 - k}, v);
       });
 
       r.do ('do', 'it');
@@ -208,13 +209,13 @@ To run the tests:
 
       var fun = function () {};
 
-      if (r.listen ({verb: 'a', path: 'b'}, fun) !== true)  return error (r, 'listen return error.');
-      if (r.listen ({verb: /a/, path: 'b'}, fun) !== false) return error (r, 'listen return error.');
-      if (r.listen ({verb: 'a', path: /b/}, fun) !== false) return error (r, 'listen return error.');
-      if (r.listen ({verb: 'a', path: 'b', id: /a/}, fun) !== false) return error (r, 'listen return error.');
-      if (r.listen ({verb: 'a', path: 'b', id: 'a'}, fun) !== true)  return error  (r, 'listen return error.');
-      if (r.listen ({verb: 'a', path: 'b', id: 'a'}, fun) !== false) return error (r, 'listen return error.');
-      if (r.listen ({verb: 'a', path: 'b', priority: 'единственный'}, fun) !== false) return error (r, 'listen return error.');
+      if (type (r.listen ({verb: 'a', path: 'b'}, fun)) !== 'string')  return error (r, 'listen return error 1.');
+      if (r.listen ({verb: /a/, path: 'b'}, fun) !== false) return error (r, 'listen return error 2.');
+      if (r.listen ({verb: 'a', path: /b/}, fun) !== false) return error (r, 'listen return error 3.');
+      if (r.listen ({verb: 'a', path: 'b', id: /a/}, fun) !== false) return error (r, 'listen return error 4.');
+      if (r.listen ({verb: 'a', path: 'b', id: 'a'}, fun) !== 'a')  return error  (r, 'listen return error 5.');
+      if (r.listen ({verb: 'a', path: 'b', id: 'a'}, fun) !== false) return error (r, 'listen return error 6.');
+      if (r.listen ({verb: 'a', path: 'b', priority: 'единственный'}, fun) !== false) return error (r, 'listen return error 7.');
    })
 
    tests.push (function () {
@@ -223,22 +224,39 @@ To run the tests:
 
       var fun = function () {};
 
-      r.listen ({verb: 'a', path: 'a', id: 'a'},     fun);
-      r.listen ({verb: 'a', path: 'b', id: 'b'},     fun);
-      r.listen ({verb: 'a', path: 'c', parent: 'a'}, fun);
+      r.listen ({verb: 'a', path: 'a', id: 'a'},              fun);
+      r.listen ({verb: 'a', path: 'b', id: 'b'},              fun);
+      var id = r.listen ({verb: 'a', path: 'c', id: 'c', parent: 'a'}, fun);
+
+      if (id !== 'c') return error (r, 'r.listen didn\'t return specified id.');
 
       r.forget ('a');
 
-      if (r.routes [0].path [0] !== 'b') return error (r, 'forget error.');
+      if (! r.routes.b || dale.keys (r.routes).length !== 1) return error (r, 'forget error.');
 
       r = R ();
-      r.listen ({verb: 'a', path: 'a', id: 'a'}, fun);
+      r.listen ({verb: 'a', path: 'a', id: 'a'},              fun);
       r.listen ({verb: 'a', path: 'b', id: 'b', parent: 'a'}, fun);
-      r.listen ({verb: 'a', path: 'c', parent: 'b'}, fun);
+      r.listen ({verb: 'a', path: 'c',          parent: 'b'}, fun);
 
       r.forget ('a');
 
-      if (r.routes.length !== 0) return error (r, 'forget error.');
+      if (dale.keys (r.routes).length !== 0) return error (r, 'forget error.');
+   });
+
+   tests.push (function () {
+
+      var r = R ();
+
+      var counter = 0;
+
+      r.listen ({id: 'yoestabadiciendoburns', verb: 'do', path: 'it', burn: true}, function () {counter++});
+
+      r.do ('do', 'it');
+
+      if (counter !== 1) return error (r, 'burnable route wasn\'t executed.');
+      if (r.routes.yoestabadiciendoburns) return error (r, 'burnable route wasn\'t burned.');
+
    });
 
    dale.do (tests, function (v) {

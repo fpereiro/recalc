@@ -1,5 +1,5 @@
 /*
-recalc - v1.0.0
+recalc - v3.0.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -28,7 +28,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
       var r = {};
 
-      r.routes  = [];
+      r.routes  = {};
       r.store   = store || {};
 
       r.do = function (verb, path) {
@@ -58,44 +58,40 @@ Please refer to readme.md to read the annotated source (but not yet!).
             ['opts',   opts, 'object'],
             function () {return [
                ['opts.verb',     opts.verb, 'string'],
-               ['opts.path',     opts.path, 'array', 'oneOf'],
-               ['opts.path',     opts.path,     ['integer', 'string'], 'eachOf'],
+               ['opts.path',     opts.path, 'array'],
+               ['opts.path',     opts.path,     ['integer', 'string'],              'eachOf'],
                ['opts.id',       opts.id,       ['string', 'integer', 'undefined'], 'oneOf'],
                ['opts.parent',   opts.parent,   ['string', 'integer', 'undefined'], 'oneOf'],
-               ['opts.priority', opts.priority, ['undefined', 'integer'],           'oneOf']
+               ['opts.priority', opts.priority, ['undefined', 'integer'],           'oneOf'],
+               ['opts.burn',     opts.burn,     ['undefined', 'boolean'],           'oneOf']
             ]},
             ['route function', rfun, 'function']
          ])) return false;
 
-         if (opts.id && dale.stopNot (r.routes, undefined, function (v) {
-            if (v.id === opts.id) return v;
-         })) return teishi.l ('r.radd', 'a route with id', opts.id, 'already exists.');
+         if (opts.id && r.routes [opts.id]) return teishi.l ('r.radd', 'A route with id', opts.id, 'already exists.');
 
          opts.id = opts.id || r.random ();
 
-         r.routes.push (dale.obj (['parent', 'priority'], {id: opts.id, verb: opts.verb, path: opts.path, rfun: rfun}, function (v) {
+         r.routes [opts.id] = dale.obj (['parent', 'priority', 'burn'], {id: opts.id, verb: opts.verb, path: opts.path, rfun: rfun}, function (v) {
             if (opts [v]) return [v, opts [v]];
-         }));
+         });
 
-         return true;
+         return opts.id;
       }
 
       r.forget = function (id) {
-         var index, children = [];
-         dale.do (r.routes, function (v, k) {
-            if (v.id     === id) index = k;
-            if (v.parent === id) children.push (v.id);
-         });
-
-         r.routes.splice (index, 1);
-         dale.do (children, r.forget);
+         if (! r.routes [id]) return teishi.l ('Route', id, 'does not exist.');
+         delete r.routes [id];
+         dale.do (dale.fil (r.routes, undefined, function (v, k) {
+            if (v.parent === id) return k;
+         }), r.forget);
       }
 
       // *** BACKEND ***
 
       r.mill = function (verb, path) {
 
-         var args = [{verb: arguments [0], path: arguments [1]}].concat (teishi.c (arguments).slice (2));
+         var args = [{verb: arguments [0], path: arguments [1]}].concat ([].slice.call (arguments, 2));
 
          var inner = function (matching) {
 
@@ -104,8 +100,10 @@ Please refer to readme.md to read the annotated source (but not yet!).
                inner (matching);
             }
 
-            var result = matching.shift ().rfun.apply (null, args);
-            if (type (result) !== 'function') inner (matching);
+            var route = matching.shift ();
+            if (! r.routes [route.id]) return inner (matching);
+            if (route.burn) r.forget (route.id);
+            if (type (route.rfun.apply (null, args)) !== 'function') inner (matching);
          }
 
          inner (r.sort (r.match (verb, path, r.routes)));

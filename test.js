@@ -1,5 +1,5 @@
 /*
-recalc - v3.0.0
+recalc - v3.1.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -30,11 +30,14 @@ To run the tests:
 
    var tests  = [];
 
+   R.perf = true;
+
    var error  = function (r, error) {
       log ('DEBUG', {
          store:  r.store,
          routes: r.routes
       });
+      R.perf = false;
       throw new Error (error);
    }
 
@@ -86,7 +89,7 @@ To run the tests:
       var r = R ();
       setTimeout (function () {
          if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed.');
-      }, 300);
+      }, 2000);
       dale.do ([
          function (x) {
             setTimeout (function () {

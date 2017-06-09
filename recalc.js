@@ -1,5 +1,5 @@
 /*
-recalc - v3.1.0
+recalc - v3.2.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -79,12 +79,13 @@ Please refer to readme.md to read the annotated source (but not yet!).
          return opts.id;
       }
 
-      r.forget = function (id) {
+      r.forget = function (id, fun) {
          if (! r.routes [id]) return teishi.l ('Route', id, 'does not exist.');
+         if (fun && type (fun) === 'function') fun (r.routes [id]);
          delete r.routes [id];
-         dale.do (dale.fil (r.routes, undefined, function (v, k) {
-            if (v.parent === id) return k;
-         }), r.forget);
+         dale.do (r.routes, function (v, k) {
+            if (v.parent === id) r.forget (k, fun);
+         });
       }
 
       // *** BACKEND ***

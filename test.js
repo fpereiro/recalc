@@ -1,5 +1,5 @@
 /*
-recalc - v3.1.0
+recalc - v3.2.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -233,18 +233,23 @@ To run the tests:
 
       if (id !== 'c') return error (r, 'r.listen didn\'t return specified id.');
 
-      r.forget ('a');
+      var onforget = '';
+
+      r.forget ('a', function (r) {onforget += r.id});
 
       if (! r.routes.b || dale.keys (r.routes).length !== 1) return error (r, 'forget error.');
+
+      if (onforget !== 'ac') return error (r, 'r.forget didn\'t execute onforget function.');
 
       r = R ();
       r.listen ({verb: 'a', path: 'a', id: 'a'},              fun);
       r.listen ({verb: 'a', path: 'b', id: 'b', parent: 'a'}, fun);
       r.listen ({verb: 'a', path: 'c',          parent: 'b'}, fun);
 
-      r.forget ('a');
+      r.forget ('a', function (r) {onforget += r.id});
 
       if (dale.keys (r.routes).length !== 0) return error (r, 'forget error.');
+      if (! onforget.match (/^acab/)) return error (r, 'r.forget didn\'t execute onforget function.');
    });
 
    tests.push (function () {

@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. The core idea
 
 ## Current status of the project
 
-The current version of recalc, v3.1.0, is considered to be *somewhat stable* and *somewhat complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
+The current version of recalc, v3.2.0, is considered to be *somewhat stable* and *somewhat complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
 
 - Add annotated source code.
 
@@ -32,7 +32,7 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/9135a9699d53aac1eccc33becb31e7d402a52214/dale.js"></script>
 <script src="https://cdn.rawgit.com/fpereiro/teishi/9781a179ed2d5abce8d6383edc19f345db58ce70/teishi.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/recalc/2f71103bc99759db69996659d7bfd2448b6666c1/recalc.js"></script>
+<script src=""></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -242,11 +242,15 @@ It is also perfectly possible to have *zero* routes matching a certain event.
 
 ### `r.forget`
 
-This function allows us to remove routes. It receives a single argument, `id`, which should be a string or integer. This `id` is the one of the route we are removing.
+This function allows us to remove routes. Its first argument is `id`, which should be a string or integer. This `id` is the one of the route we are removing.
 
 If you call `r.forget ('foo')`, this will also remove all the routes that have `'foo'` as its parent, plus all their children. In effect, the `parent` property of the route allows for tree-like deletion of routes.
 
-Finally, if you call `r.forget ('foo')` and there's no route named `foo`, this function will return `false` and print an error.
+If you call `r.forget ('foo')` and there's no route named `foo`, this function will return `false` and print an error.
+
+If you pass a function as the second argument to `r.forget`, this function will be executed for every route deleted (that is, the route with the `id` specified, plus all its children). This `onforget` function will receive as first argument the route that is being deleted.
+
+For example, `r.forget ('foo', function (r) {console.log (r.id)})` will print `foo`, as well as the ids of any routes that have `foo` as parent.
 
 ### Route functions
 

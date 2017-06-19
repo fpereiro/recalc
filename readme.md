@@ -32,7 +32,7 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/9135a9699d53aac1eccc33becb31e7d402a52214/dale.js"></script>
 <script src="https://cdn.rawgit.com/fpereiro/teishi/9781a179ed2d5abce8d6383edc19f345db58ce70/teishi.js"></script>
-<script src=""></script>
+<script src="https://cdn.rawgit.com/fpereiro/recalc/191d81b7f1dd78c1f2b79baa5476e31727a8a9df/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -326,7 +326,7 @@ Regarding the issue of calling events from within a route (something which is bo
 
 Regarding data: unless your route function returns `x.cb` (which signals that it is async), any other return values will be *discarded*. If you want to pass data, you should place it in `r.store`, through a function that triggers an event.
 
-Because recalc wants to retain generality, we haven't bundled any functions for doing updates on `r.store` using the event system. This is done on [gotoв](https://github.com/fpereiro/gotoB), which heavily relies on recalc. However, consider the following example, where `r.store` is an array:
+Because recalc wants to retain generality, we haven't bundled any functions for doing updates on `r.store` using the event system. This is done on [gotoв](https://github.com/fpereiro/gotoB), which is built on top of recalc. However, consider the following example, where `r.store` is an array:
 
 ```javascript
 r.listen ('setElement', '*', function (x, value) {

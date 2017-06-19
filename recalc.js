@@ -14,7 +14,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
    var dale   = isNode ? require ('dale')   : window.dale;
    var teishi = isNode ? require ('teishi') : window.teishi;
-   var type   = teishi.t;
+   var type   = teishi.t, log = teishi.l;
 
    // *** CONSTRUCTOR ***
 
@@ -48,7 +48,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
          return true;
       }
 
-      r.listen = function (first, second, third, fourth) {
+      r.listen = function () {
 
          var options, rfun = arguments [arguments.length - 1];
          if (arguments.length === 2) options = arguments [0];
@@ -75,7 +75,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
          ])) return false;
 
          if (options.id) {
-            if (r.routes [options.id]) return teishi.l ('r.listen', 'A route with id', options.id, 'already exists.');
+            if (r.routes [options.id]) return log ('r.listen', 'A route with id', options.id, 'already exists.');
          }
          else options.id = r.random ();
          options.rfun = rfun;
@@ -85,7 +85,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
       }
 
       r.forget = function (id, fun) {
-         if (! r.routes [id]) return teishi.l ('Route', id, 'does not exist.');
+         if (! r.routes [id]) return log ('Route', id, 'does not exist.');
          if (fun && type (fun) === 'function') fun (r.routes [id]);
          delete r.routes [id];
          dale.do (r.routes, function (v, k) {

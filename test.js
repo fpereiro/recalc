@@ -1,5 +1,5 @@
 /*
-recalc - v3.2.0
+recalc - v3.3.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -78,7 +78,7 @@ To run the tests:
 
    tests.push (function () {
       var r = R ();
-      var id = r.listen ({verb: 'do', path: '*'}, function (x, arg1, arg2) {
+      var id = r.listen ('do', '*', function (x, arg1, arg2) {
          if (arg1 !== 'foo' || arg2 !== 'bar') return error (r, 'Extra arguments weren\'t passed to rfun.');
       });
       if (type (id) !== 'string') return error (r, 'r.listen didn\'t return id of the created route.');
@@ -112,7 +112,7 @@ To run the tests:
             if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed in order: ' + r.store.value);
          }
       ], function (v, k) {
-         r.listen ({verb: 'fire', path: '*', priority: 2 - k}, v);
+         r.listen ('fire', '*', {priority: 2 - k}, v);
       });
       r.do ('fire', '*');
    });
@@ -130,8 +130,8 @@ To run the tests:
       }
 
       dale.do ([
-         [{verb: 'verb1', path: '*'},              execute],
-         [{verb: 'verb2', path: ['some', 'path']}, notExecute],
+         ['verb1', '*',              execute],
+         ['verb2', ['some', 'path'], notExecute],
          [{verb: 'verb3', path: ['foo', 'bar']},   execute]
       ], function (v) {
          r.listen.apply (null, v);
@@ -168,7 +168,7 @@ To run the tests:
             if (r.store.value !== 'ab') return error (r, 'Sequence error.');
          }
       ], function (v, k) {
-         r.listen ({verb: 'do', path: 'it', priority: 2 - k}, v);
+         r.listen ('do', 'it', {priority: 2 - k}, v);
       });
 
       r.do ('do', 'it');
@@ -179,8 +179,8 @@ To run the tests:
       var r = R ();
 
       dale.do ([
-         [{verb: 'do', path: 'it'},               function () {r.store.value += 'b'}],
-         [{verb: 'do', path: 'it', priority: 1},  function () {r.store.value = 'a'}]
+         ['do', 'it',                function () {r.store.value += 'b'}],
+         ['do', 'it', {priority: 1}, function () {r.store.value = 'a'}]
       ], function (v) {
          r.listen.apply (null, v);
       });
@@ -194,9 +194,9 @@ To run the tests:
       var r = R ();
 
       dale.do ([
-         [{verb: 'do', path: 'it'},              function () {r.store.value += 'c'}],
-         [{verb: 'do', path: 'it', priority: 1}, function () {r.store.value += 'b'}],
-         [{verb: 'do', path: 'it', priority: 2}, function () {r.store.value = 'a'}]
+         ['do', 'it', {priority: -1}, function () {r.store.value += 'c'}],
+         ['do', 'it',                 function () {r.store.value += 'b'}],
+         ['do', 'it', {priority: 1},  function () {r.store.value = 'a'}]
       ], function (v) {
          r.listen.apply (null, v);
       });
@@ -227,9 +227,9 @@ To run the tests:
 
       var fun = function () {};
 
-      r.listen ({verb: 'a', path: 'a', id: 'a'},              fun);
-      r.listen ({verb: 'a', path: 'b', id: 'b'},              fun);
-      var id = r.listen ({verb: 'a', path: 'c', id: 'c', parent: 'a'}, fun);
+      r.listen ('a', 'a', {id: 'a'}, fun);
+      r.listen ('a', 'b', {id: 'b'}, fun);
+      var id = r.listen ('a', 'c', {id: 'c', parent: 'a'}, fun);
 
       if (id !== 'c') return error (r, 'r.listen didn\'t return specified id.');
 
@@ -242,9 +242,9 @@ To run the tests:
       if (onforget !== 'ac') return error (r, 'r.forget didn\'t execute onforget function.');
 
       r = R ();
-      r.listen ({verb: 'a', path: 'a', id: 'a'},              fun);
-      r.listen ({verb: 'a', path: 'b', id: 'b', parent: 'a'}, fun);
-      r.listen ({verb: 'a', path: 'c',          parent: 'b'}, fun);
+      r.listen ('a', 'a', {id: 'a'},              fun);
+      r.listen ('a', 'b', {id: 'b', parent: 'a'}, fun);
+      r.listen ('a', 'c', {         parent: 'b'}, fun);
 
       r.forget ('a', function (r) {onforget += r.id});
 
@@ -258,7 +258,7 @@ To run the tests:
 
       var counter = 0;
 
-      r.listen ({id: 'yoestabadiciendoburns', verb: 'do', path: 'it', burn: true}, function () {counter++});
+      r.listen ('do', 'it', {id: 'yoestabadiciendoburns', burn: true}, function () {counter++});
 
       r.do ('do', 'it');
 

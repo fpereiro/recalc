@@ -1,5 +1,5 @@
 /*
-recalc - v3.2.0
+recalc - v3.3.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -14,13 +14,13 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
    var dale   = isNode ? require ('dale')   : window.dale;
    var teishi = isNode ? require ('teishi') : window.teishi;
-   var type   = teishi.t, stop = teishi.stop;
+   var type   = teishi.t;
 
    // *** CONSTRUCTOR ***
 
    var main = function (store) {
 
-      if (stop ([
+      if (teishi.stop ([
          ['store', store, ['array', 'object', 'undefined'], 'oneOf']
       ])) return;
 
@@ -35,7 +35,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
          if (teishi.simple (path)) path = [path];
 
-         if (stop ('r', [
+         if (teishi.stop ('r.do', [
             ['verb', verb, 'string'],
             ['path', path, 'array'],
             function () {
@@ -48,35 +48,40 @@ Please refer to readme.md to read the annotated source (but not yet!).
          return true;
       }
 
-      r.listen = function (opts, rfun) {
+      r.listen = function (first, second, third, fourth) {
 
-         opts = opts || {};
+         var options, rfun = arguments [arguments.length - 1];
+         if (arguments.length === 2) options = arguments [0];
+         else {
+            options      = arguments.length === 3 ? {} : arguments [2];
+            options.verb = arguments [0];
+            options.path = arguments [1];
+         }
 
-         if (teishi.simple (opts.path)) opts.path = [opts.path];
+         if (teishi.simple (options.path)) options.path = [options.path];
 
-         if (teishi.stop ('r.radd', [
-            ['opts',   opts, 'object'],
+         if (teishi.stop ('r.listen', [
+            ['options',   options, 'object'],
             function () {return [
-               ['opts.verb',     opts.verb, 'string'],
-               ['opts.path',     opts.path, 'array'],
-               ['opts.path',     opts.path,     ['integer', 'string'],              'eachOf'],
-               ['opts.id',       opts.id,       ['string', 'integer', 'undefined'], 'oneOf'],
-               ['opts.parent',   opts.parent,   ['string', 'integer', 'undefined'], 'oneOf'],
-               ['opts.priority', opts.priority, ['undefined', 'integer'],           'oneOf'],
-               ['opts.burn',     opts.burn,     ['undefined', 'boolean'],           'oneOf']
+               ['options.verb',     options.verb, 'string'],
+               ['options.path',     options.path, 'array'],
+               ['options.path',     options.path,     ['integer', 'string'],              'eachOf'],
+               ['options.id',       options.id,       ['string', 'integer', 'undefined'], 'oneOf'],
+               ['options.parent',   options.parent,   ['string', 'integer', 'undefined'], 'oneOf'],
+               ['options.priority', options.priority, ['undefined', 'integer'],           'oneOf'],
+               ['options.burn',     options.burn,     ['undefined', 'boolean'],           'oneOf']
             ]},
             ['route function', rfun, 'function']
          ])) return false;
 
-         if (opts.id && r.routes [opts.id]) return teishi.l ('r.radd', 'A route with id', opts.id, 'already exists.');
+         if (options.id) {
+            if (r.routes [options.id]) return teishi.l ('r.listen', 'A route with id', options.id, 'already exists.');
+         }
+         else options.id = r.random ();
+         options.rfun = rfun;
 
-         opts.id = opts.id || r.random ();
-
-         r.routes [opts.id] = dale.obj (['parent', 'priority', 'burn'], {id: opts.id, verb: opts.verb, path: opts.path, rfun: rfun}, function (v) {
-            if (opts [v]) return [v, opts [v]];
-         });
-
-         return opts.id;
+         r.routes [options.id] = options;
+         return options.id;
       }
 
       r.forget = function (id, fun) {

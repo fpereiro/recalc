@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. The core idea
 
 ## Current status of the project
 
-The current version of recalc, v3.2.0, is considered to be *somewhat stable* and *somewhat complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
+The current version of recalc, v3.3.0, is considered to be *somewhat stable* and *somewhat complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
 
 - Add annotated source code.
 
@@ -32,7 +32,7 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/9135a9699d53aac1eccc33becb31e7d402a52214/dale.js"></script>
 <script src="https://cdn.rawgit.com/fpereiro/teishi/9781a179ed2d5abce8d6383edc19f345db58ce70/teishi.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/recalc/8efcc2ff89db40c3cc1a7c29a0b483a200bb6487/recalc.js"></script>
+<script src=""></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -130,7 +130,7 @@ So far, `routes` and `store` are simple objects. Where's the action? Enter `r.do
 Every event has two properties:
 
 - A `verb`, which is a string. For example: `'get'`, `'set'` or `'someverb'`.
-- A `path`, which can be either a string, an integer, or an array with one or more strings or integers. For example, `'hello'`, `1`, or `['hello', '1']`. If you pass a single string or number, it will be interpreted as an array containing that element.
+- A `path`, which can be either a string, an integer, or an array with one or more strings or integers. For example, `'hello'`, `1`, or `['hello', '1']`. If you pass a single string or number, it will be interpreted as an array containing that element (for example, `'hello'` is considered to be `['hello']`).
 
 The combination of a verb plus a path seems versatile enough to serve as a general purpose way of building an event system. It works well for [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) and it will probably work well for us too.
 
@@ -162,27 +162,29 @@ Wildcards are further explored in the next section - to really understand them, 
 
 This function is the one in charge of placing routes into `r.routes`. Every time it is invoked with valid arguments, it will add a route. It takes the following arguments:
 
-- `opts`, an object which contains at least a `verb` and a `path`. The `verb` and `path` are exactly like those passed to `r.do`.
+- `verb`, which has the same shape as the `verb` passed to `B.do`.
+- `path`, which has the same shape as the `path` passed to `B.do`.
+- `options`, an optional object with additional options.
 - `rfun`, the function that will be executed when the route is matched. `rfun` is short for `route function`.
 
-As with `r.do`, if you pass an invalid route, this function will return `false`, otherwise it will return the `id` of the route.
+As with `r.do`, if you pass invalid parameters, this function will return `false` and print an error message. Otherwise it will return the `id` of the route.
 
 For example, to match the last event we showed on the last section, we could write a route like this:
 
 ```javascript
-r.listen ({verb: 'fire', path: ['hello', 1]}, function () {
+r.listen ('fire', ['hello', 1], function () {
    // Your logic here.
 });
 ```
 
 The most important question regarding routes is: when is a route matched? And the answer is: when both the verb and path of the executed event match those of the route.
 
-In the case of the verb, matching is straightforward: the verb of the path must match identically that of the handler.
+In the case of the verb, matching is straightforward: the verb of the path must be identical to that of the route.
 
 In the case of the path, it is somewhat more involved. Let's explain this with an example. Suppose you have the following route:
 
 ```javascript
-r.listen ({verb: 'fire', path: 'hello'}, function () {...});
+r.listen ('fire', 'hello', function () {...});
 ```
 
 The route above will match the following three events:
@@ -210,13 +212,13 @@ Why this strange behavior? I'm still heavily experimenting with this, but so far
 One more thing: you can also use wildcards, in both route verbs and paths. For example, this route will be executed by every event:
 
 ```javascript
-r.listen ({verb: '*', path: '*'}, function () {...});
+r.listen ('*', '*', function () {...});
 ```
 
 You can also use wildcards for single elements in an array path. For example, this route:
 
 ```javascript
-r.listen ({verb: 'fire', path: ['hello', '*', 'handsome']}, function () {...});
+r.listen ('fire', ['hello', '*', 'handsome'], function () {...});
 ```
 
 Will be matched by the following events:
@@ -229,16 +231,28 @@ r.do ('fire', ['hello', 'out there', 'handsome']);
 r.do ('*', ['hello', '*']);
 ```
 
-To close this rather long section, let's now see what additional `opts` can be passed to a route. All of them are optional:
+To close this rather long section, let's now what `options` can be passed to a route. All of them are optional:
 
-- `id`: a string or integer that will uniquely identify a route. If you don't pass one, `r.listen` will generate one for you. This `id` will be used as the key where the route is bound - for example, if `opts.id === 'hello'`, the route will be stored at `r.routes.hello`. If you pass an `id` that's already being used by another route, an error will be printed and `r.listen` will return `false`.
+- `id`: a string or integer that will uniquely identify a route. If you don't pass one, `r.listen` will generate one for you. This `id` will be used as the key where the route is bound - for example, if `options.id === 'hello'`, the route will be stored at `r.routes.hello`. If you pass an `id` that's already being used by another route, an error will be printed and `r.listen` will return `false`.
 - `parent`: a string or integer that will represent the `id` of this route. By default this is `undefined`. The purpose of this will be explained below when we explain `r.forget`.
-- `priority`: an integer value. By default this is `undefined`. The higher the value, the sooner this route will be executed in case of a match.
+- `priority`: an integer value. By default this is `undefined` (which is equivalent to 0). The higher the value, the sooner this route will be executed in case of a match. Notice you can also use negative values.
 - `burn`: a boolean value. By default this is `undefined`. When you set it to `true`, the route will auto-destroy after being matched/executed a single time. This allows you to create one-off events that later disappear, hence allowing you to keep clean the event space.
 
 This last property reminds us that it is perfectly normal to have more than one route matching a certain event. `priority` simply lets us make certain routes to be executed ahead of others. Again, I have pragmatic reasons for this, but still no carefully considered rationale. Routes of equal priority are run in arbitrary order - to ensure a specific sequence, you need to use the `priority` parameter.
 
 It is also perfectly possible to have *zero* routes matching a certain event.
+
+Here's an example of how to invoke `r.listen` with options.
+
+```javascript
+r.listen ('*', '*', {id: 'matchEverything', parent: 'someOtherRouteId', priority: 3, burn: false}, function () {...});
+```
+
+You can also place the `verb` and the `path` inside the options object. In this case, `options` becomes the first argument passed to the function, and is now mandatory (since `r.listen` must receive a `verb` and a `path` always).
+
+```javascript
+r.listen ({verb: '*', path: '*', id: 'matchEverything', parent: 'someOtherRouteId', priority: 3, burn: false}, function () {...});
+```
 
 ### `r.forget`
 
@@ -265,7 +279,7 @@ A route function always receives a `context` as its first argument. The context 
 As a convention, I name `context` as `x`. Let's see an example:
 
 ```javascript
-r.listen ({verb: 'fire', path: '*'}, function (x, extraArg1, extraArg2) {
+r.listen ('fire', '*', function (x, extraArg1, extraArg2) {
    // Do something...
 });
 ```
@@ -283,6 +297,8 @@ To set `extraArg1` and `extraArg2` to `'foo'` and `'bar'` respectively, you coul
 ```javascript
 r.do ('fire', 'hello', 'foo', 'bar');
 ```
+
+This means that any parameters passed to `r.do` besides `verb` and `path` will be passed to the route function.
 
 Having covered the arguments, we now have to see what you to have in mind when writing route functions. There's two issues: control and data.
 
@@ -306,11 +322,11 @@ The above async route function does two things that every async route function s
 
 Interestingly enough, if you don't want to resume the execution of further routes, you can skip the call to `x.cb` from within the asynchronous callback. This may be handy in case of an error.
 
-Regarding the issue of calling events from within a route handler (something which is both possible and encouraged), it can be done freely as long as the events trigger routes with synchronous route functions. If, however, you trigger an event that triggers one or more asynchronous route functions, you should do that as the *last* thing within the body of your route function, in order to preserve the sequence. Not only that, you should also return `x.cb` in order to signal that this operation was async, and hence your route function is async as well.
+Regarding the issue of calling events from within a route (something which is both possible and encouraged), it can be done freely as long as the events trigger routes with synchronous route functions. If, however, you trigger an event that triggers one or more asynchronous route functions, you should do that as the *last* thing within the body of your route function, in order to preserve the sequence. Not only that, you should also return `x.cb` in order to signal that this operation was async, and hence your route function is async as well.
 
 Regarding data: unless your route function returns `x.cb` (which signals that it is async), any other return values will be *discarded*. If you want to pass data, you should place it in `r.store`, through a function that triggers an event.
 
-Because recalc wants to retain generality, we haven't bundled any functions for doing updates on `r.store` using the event system. A forthcoming library will show a comprehensive example of this. However, for the time being, consider the following example, where `r.store` is an array:
+Because recalc wants to retain generality, we haven't bundled any functions for doing updates on `r.store` using the event system. This is done on [gotoв](https://github.com/fpereiro/gotoB), which heavily relies on recalc. However, consider the following example, where `r.store` is an array:
 
 ```javascript
 r.listen ('setElement', '*', function (x, value) {

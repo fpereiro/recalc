@@ -44,7 +44,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
          if (teishi.stop ('r.do', [
             ['verb', verb, 'string'],
-            r.isPath (path, 'path')
+            r.isPath (path, 'r.do')
          ])) return false;
 
          r.mill.apply (null, arguments);

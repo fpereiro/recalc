@@ -130,7 +130,7 @@ So far, `routes` and `store` are simple objects. Where's the action? Enter `r.do
 Every event has two properties:
 
 - A `verb`, which is a string. For example: `'get'`, `'set'` or `'someverb'`.
-- A `path`, which can be either a string, an integer, or an array with zero or more strings or integers. For example, `'hello'`, `1`, or `['hello', '1']`. If you pass a single string or integer, it will be interpreted as an array containing that element (for example, `'hello'` is considered to be `['hello']` and `0` is conisdered to be `[0]`).
+- A `path`, which can be either a string, an integer, or an array with zero or more strings or integers. For example, `'hello'`, `1`, or `['hello', '1']`. If you pass a single string or integer, it will be interpreted as an array containing that element (for example, `'hello'` is considered to be `['hello']` and `0` is considered to be `[0]`).
 
 The combination of a verb plus a path seems versatile enough to serve as a general purpose way of building an event system. It works well for [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) and it will probably work well for us too.
 
@@ -177,11 +177,11 @@ r.listen ('fire', ['hello', 1], function () {
 });
 ```
 
-Remember that we said earlier that *the `routes` object is an object that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `routes`, and executes those that match the event being fired.* The most important question regarding routes is: when an event is fired, which routes are executed? And the answer is: when both the verb and path of the executed event match those of the route.
+Remember that we said earlier that *the `routes` object is an object that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `routes`, and executes the route handlers of those routes that match the event being fired.* The most important question regarding routes is: when does a route match an event? And the answer is: when both the verb and path of the executed event match those of the route.
 
 In the case of the verb, matching is straightforward: the verb of the path must be identical to that of the route.
 
-In the case of the path, it is somewhat more involved. Let's explain this with an example. Suppose you have the following route:
+In the case of the path, matching is somewhat more involved. Let's explain this with an example. Suppose you have the following route:
 
 ```javascript
 r.listen ('fire', 'hello', function () {...});

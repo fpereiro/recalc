@@ -1,5 +1,5 @@
 /*
-recalc - v3.3.0
+recalc - v3.4.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -31,17 +31,20 @@ Please refer to readme.md to read the annotated source (but not yet!).
       r.routes  = {};
       r.store   = store || {};
 
+      r.isPath = function (path, fun) {
+         return teishi.v (fun, [
+            ['path', path, ['array', 'integer', 'string'], 'oneOf'],
+            ['path', path, ['integer', 'string'], 'eachOf'],
+         ]);
+      }
+
       r.do = function (verb, path) {
 
          if (teishi.simple (path)) path = [path];
 
          if (teishi.stop ('r.do', [
             ['verb', verb, 'string'],
-            ['path', path, 'array'],
-            function () {
-               return ['path length', path.length, {min: 1}, teishi.test.range];
-            },
-            ['path', path, ['integer', 'string'], 'eachOf']
+            r.isPath (path, 'path')
          ])) return false;
 
          r.mill.apply (null, arguments);
@@ -51,6 +54,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
       r.listen = function () {
 
          var options, rfun = arguments [arguments.length - 1];
+         if (arguments.length < 2) return log ('r.listen', 'Too few arguments passed to r.listen');
          if (arguments.length === 2) options = arguments [0];
          else {
             options      = arguments.length === 3 ? {} : arguments [2];
@@ -62,10 +66,10 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
          if (teishi.stop ('r.listen', [
             ['options',   options, 'object'],
+            ['keys of options', dale.keys (options), ['verb', 'path', 'id', 'parent', 'priority', 'burn'], 'eachOf', teishi.test.equal],
             function () {return [
-               ['options.verb',     options.verb, 'string'],
-               ['options.path',     options.path, 'array'],
-               ['options.path',     options.path,     ['integer', 'string'],              'eachOf'],
+               ['options.verb', options.verb, 'string'],
+               r.isPath (options.path, 'r.listen'),
                ['options.id',       options.id,       ['string', 'integer', 'undefined'], 'oneOf'],
                ['options.parent',   options.parent,   ['string', 'integer', 'undefined'], 'oneOf'],
                ['options.priority', options.priority, ['undefined', 'integer'],           'oneOf'],
@@ -121,18 +125,15 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
          dale.do (routes, function (route) {
 
-            // If verb and route verb are not a wildcard and it doesn't match the verb, skip the route.
             if (verb !== '*' && route.verb !== '*' && route.verb !== verb) return;
 
             if (route.path.length > path.length) return;
 
-            // Iterate through the route path, stop on false.
-            dale.stop (route.path, false, function (v2, k2) {
+            if (route.path.length === 0) return matching.push (route);
 
-               // If the kth element of the path is not undefined AND it is not a wildcard AND the corresponding element of the route path is not a wildcard AND the kth path element and the kth route path element are not equal, return false and stop the loop.
+            dale.stop (route.path, false, function (v2, k2) {
                if (path [k2] !== undefined && path [k2] !== '*' && v2 !== '*' && path [k2] !== v2) return false;
 
-               // If the kth element of the path is equal to the length of the route path push the route.
                if (k2 === route.path.length - 1) {
                   matching.push (route);
                   return false;

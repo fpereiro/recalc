@@ -1,5 +1,5 @@
 /*
-recalc - v3.3.0
+recalc - v3.4.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -67,8 +67,8 @@ To run the tests:
          [],
          [/invalidverb/, 'path'],
          ['someverb', /invalidpath/],
-         ['someverb', []],
          ['someverb', [/invalid/, 'path']],
+         [['someverb'], [/invalid/, 'path']],
       ], true, function (args) {
          if (r.do.apply (null, args) !== false) return true;
       })) return error (r, 'Invalid input to r.do was accepted.');
@@ -125,14 +125,14 @@ To run the tests:
       }
 
       var notExecute = function (x) {
-         log (x);
-         r.store.notExecute--;
+         r.store.notExecute++;
       }
 
       dale.do ([
          ['verb1', '*',              execute],
          ['verb2', ['some', 'path'], notExecute],
-         [{verb: 'verb3', path: ['foo', 'bar']},   execute]
+         [{verb: 'verb3', path: ['foo', 'bar']},   execute],
+         ['verb4', [], execute]
       ], function (v) {
          r.listen.apply (null, v);
       });
@@ -152,9 +152,18 @@ To run the tests:
       if (r.store.execute    !== 5) error (r, 'Matching error 2.');
 
       r.do ('verb2', ['some', 'Path', 'here']);
-      r.do ('verb4', 'whatever');
+      r.do ('verb5', 'whatever');
 
       if (r.store.notExecute !== 0) error (r, 'Matching error 3.');
+
+      r.do ('verb4', 'a');
+      r.do ('verb4', ['a', 'b']);
+      r.do ('verb4', []);
+
+      if (r.store.execute    !== 8) error (r, 'Matching error 4.');
+
+      r.do ('*', []);
+      if (r.store.execute    !== 9) error (r, 'Matching error 5.');
 
    });
 
@@ -219,6 +228,17 @@ To run the tests:
       if (r.listen ({verb: 'a', path: 'b', id: 'a'}, fun) !== 'a')  return error  (r, 'listen return error 5.');
       if (r.listen ({verb: 'a', path: 'b', id: 'a'}, fun) !== false) return error (r, 'listen return error 6.');
       if (r.listen ({verb: 'a', path: 'b', priority: 'единственный'}, fun) !== false) return error (r, 'listen return error 7.');
+      if (r.listen ({verb: 'a', path: 'b', foo: 'bar'}, fun) !== false) return error (r, 'listen return error 8.');
+      if (type (r.listen ('a', 'b', fun)) !== 'string')  return error (r, 'listen return error 9.');
+      if (r.listen (/a/, 'b', fun) !== false) return error (r, 'listen return error 10.');
+      if (r.listen ('a', /b/, fun) !== false) return error (r, 'listen return error 11.');
+      if (r.listen ('a', 'b', {id: /a/}, fun) !== false) return error (r, 'listen return error 12.');
+      if (r.listen ('a', 'b', {id: 'b'}, fun) !== 'b')  return error  (r, 'listen return error 13.');
+      if (r.listen ('a', 'b', {id: 'b'}, fun) !== false) return error (r, 'listen return error 14.');
+      if (r.listen ('a', 'b', {priority: 'единственный'}, fun) !== false) return error (r, 'listen return error 15.');
+      if (r.listen ('a', 'b', {foo: 'bar'}, fun) !== false) return error (r, 'listen return error 16.');
+      if (r.listen ('a', 'b', {id: 'c'}) !== false) return error (r, 'listen return error 17.');
+      if (r.listen ('a', 'b') !== false) return error (r, 'listen return error 18.');
    })
 
    tests.push (function () {

@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. The core idea
 
 ## Current status of the project
 
-The current version of recalc, v3.3.0, is considered to be *somewhat stable* and *somewhat complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
+The current version of recalc, v3.4.0, is considered to be *somewhat stable* and *somewhat complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
 
 - Add annotated source code.
 
@@ -32,7 +32,7 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/9135a9699d53aac1eccc33becb31e7d402a52214/dale.js"></script>
 <script src="https://cdn.rawgit.com/fpereiro/teishi/9781a179ed2d5abce8d6383edc19f345db58ce70/teishi.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/recalc/191d81b7f1dd78c1f2b79baa5476e31727a8a9df/recalc.js"></script>
+<script src=""></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -130,7 +130,7 @@ So far, `routes` and `store` are simple objects. Where's the action? Enter `r.do
 Every event has two properties:
 
 - A `verb`, which is a string. For example: `'get'`, `'set'` or `'someverb'`.
-- A `path`, which can be either a string, an integer, or an array with one or more strings or integers. For example, `'hello'`, `1`, or `['hello', '1']`. If you pass a single string or number, it will be interpreted as an array containing that element (for example, `'hello'` is considered to be `['hello']`).
+- A `path`, which can be either a string, an integer, or an array with zero or more strings or integers. For example, `'hello'`, `1`, or `['hello', '1']`. If you pass a single string or integer, it will be interpreted as an array containing that element (for example, `'hello'` is considered to be `['hello']` and `0` is conisdered to be `[0]`).
 
 The combination of a verb plus a path seems versatile enough to serve as a general purpose way of building an event system. It works well for [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) and it will probably work well for us too.
 
@@ -177,7 +177,7 @@ r.listen ('fire', ['hello', 1], function () {
 });
 ```
 
-The most important question regarding routes is: when is a route matched? And the answer is: when both the verb and path of the executed event match those of the route.
+Remember that we said earlier that *the `routes` object is an object that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `routes`, and executes those that match the event being fired.* The most important question regarding routes is: when an event is fired, which routes are executed? And the answer is: when both the verb and path of the executed event match those of the route.
 
 In the case of the verb, matching is straightforward: the verb of the path must be identical to that of the route.
 
@@ -209,7 +209,32 @@ In general, what happens is that the elements of the route path are matched one-
 
 Why this strange behavior? I'm still heavily experimenting with this, but so far this approach tends to be quite useful for tracking changes in nested data structures. When I find a deeper, less pragmatic explanation, I will be eager to post it here.
 
-One more thing: you can also use wildcards, in both route verbs and paths. For example, this route will be executed by every event:
+Let's see now which `options` can be passed to a route. `options` All of them are optional:
+
+- `id`: a string or integer that will uniquely identify a route. If you don't pass one, `r.listen` will generate one for you. This `id` will be used as the key where the route is bound - for example, if `options.id === 'hello'`, the route will be stored at `r.routes.hello`. If you pass an `id` that's already being used by another route, an error will be printed and `r.listen` will return `false`.
+- `parent`: a string or integer that will represent the `id` of this route. By default this is `undefined`. The purpose of this will be explained below when we explain `r.forget`.
+- `burn`: a boolean value. By default this is `undefined`. When you set it to `true`, the route will auto-destroy after being matched/executed a single time. This allows you to create one-off events that later disappear, hence allowing you to keep clean the event space.
+- `priority`: an integer value. By default this is `undefined` (which is equivalent to 0). The higher the value, the sooner this route will be executed in case of a match. Notice you can also use negative values.
+
+This last property reminds us that it is perfectly normal to have more than one route matching a certain event. `priority` simply lets us make certain routes to be executed ahead of others. Again, I have pragmatic reasons for this, but still no carefully considered rationale. Routes of equal priority are run in arbitrary order - to ensure a specific sequence, you need to use the `priority` parameter.
+
+It is also perfectly possible to have *zero* routes matching a certain event.
+
+Here's an example of how to invoke `r.listen` with options.
+
+```javascript
+r.listen ('fire', 'test', {id: 'matchEverything', parent: 'someOtherRouteId', priority: 3, burn: false}, function () {...});
+```
+
+You can also place the `verb` and the `path` inside the options object. In this case, `options` becomes the first argument passed to the function, and is now mandatory (since `r.listen` must receive a `verb` and a `path` always).
+
+```javascript
+r.listen ({verb: 'fire', path: 'test', id: 'matchEverything', parent: 'someOtherRouteId', priority: 3, burn: false}, function () {...});
+```
+
+### `r.listen` advanced matching: wildcards & empty paths
+
+Within event and route paths, you can also use wildcards. For example, this route will be executed by every event:
 
 ```javascript
 r.listen ('*', '*', function () {...});
@@ -231,27 +256,32 @@ r.do ('fire', ['hello', 'out there', 'handsome']);
 r.do ('*', ['hello', '*']);
 ```
 
-To close this rather long section, let's now what `options` can be passed to a route. All of them are optional:
+A path can also be an empty array. Conceptually, an empty path represents the [root path](https://en.wikipedia.org/wiki/Tree_(data_structure)#Terminology). In practical terms, if the path of a route is an empty array, that route will match any event that has a matching verb, no matter what their paths are. For example, this route:
 
-- `id`: a string or integer that will uniquely identify a route. If you don't pass one, `r.listen` will generate one for you. This `id` will be used as the key where the route is bound - for example, if `options.id === 'hello'`, the route will be stored at `r.routes.hello`. If you pass an `id` that's already being used by another route, an error will be printed and `r.listen` will return `false`.
-- `parent`: a string or integer that will represent the `id` of this route. By default this is `undefined`. The purpose of this will be explained below when we explain `r.forget`.
-- `priority`: an integer value. By default this is `undefined` (which is equivalent to 0). The higher the value, the sooner this route will be executed in case of a match. Notice you can also use negative values.
-- `burn`: a boolean value. By default this is `undefined`. When you set it to `true`, the route will auto-destroy after being matched/executed a single time. This allows you to create one-off events that later disappear, hence allowing you to keep clean the event space.
-
-This last property reminds us that it is perfectly normal to have more than one route matching a certain event. `priority` simply lets us make certain routes to be executed ahead of others. Again, I have pragmatic reasons for this, but still no carefully considered rationale. Routes of equal priority are run in arbitrary order - to ensure a specific sequence, you need to use the `priority` parameter.
-
-It is also perfectly possible to have *zero* routes matching a certain event.
-
-Here's an example of how to invoke `r.listen` with options.
-
-```javascript
-r.listen ('*', '*', {id: 'matchEverything', parent: 'someOtherRouteId', priority: 3, burn: false}, function () {...});
+```
+r.listen ('fire', []);
 ```
 
-You can also place the `verb` and the `path` inside the options object. In this case, `options` becomes the first argument passed to the function, and is now mandatory (since `r.listen` must receive a `verb` and a `path` always).
+will match the following events:
 
 ```javascript
-r.listen ({verb: '*', path: '*', id: 'matchEverything', parent: 'someOtherRouteId', priority: 3, burn: false}, function () {...});
+r.do ('fire', 'hello');
+
+r.do ('fire', ['another', 'path']);
+
+r.do ('fire', []);
+```
+
+If the path of an event is an empty array, the only routes that can possibly match it have 1) an empty array as path; and 2) a matching verb. For example, the only route that can match this event:
+
+```javascript
+r.do ('foo', []);
+```
+
+is this route:
+
+```javascript
+r.listen ('foo', []);
 ```
 
 ### `r.forget`
@@ -349,7 +379,7 @@ There's four other functions that support the usage functions. If you override t
 
 ## Source code
 
-The complete source code is contained in `recalc.js`. It is about 160 lines long.
+The complete source code is contained in `recalc.js`. It is about 170 lines long.
 
 Annotated source code will be forthcoming when the library stabilizes.
 

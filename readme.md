@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. The core idea
 
 ## Current status of the project
 
-The current version of recalc, v3.4.0, is considered to be *somewhat stable* and *somewhat complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
+The current version of recalc, v3.5.0, is considered to be *mostly stable* and *mostly complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
 
 - Add annotated source code.
 
@@ -32,7 +32,7 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/9135a9699d53aac1eccc33becb31e7d402a52214/dale.js"></script>
 <script src="https://cdn.rawgit.com/fpereiro/teishi/9781a179ed2d5abce8d6383edc19f345db58ce70/teishi.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/recalc/aeb95af219e89d697a12c7bd980c1550be611493/recalc.js"></script>
+<script src=""></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -234,7 +234,7 @@ r.listen ({verb: 'fire', path: 'test', id: 'matchEverything', parent: 'someOther
 
 ### `r.listen` advanced matching: wildcards & empty paths
 
-Within event and route paths, you can also use wildcards. For example, this route will be executed by every event:
+Within event and route paths, you can also use wildcards. For example, this route will be executed by any event that has a path that's at least one element long:
 
 ```javascript
 r.listen ('*', '*', function () {...});
@@ -267,21 +267,30 @@ will match the following events:
 ```javascript
 r.do ('fire', 'hello');
 
+r.do ('fire', '*');
+
 r.do ('fire', ['another', 'path']);
 
 r.do ('fire', []);
 ```
 
-If the path of an event is an empty array, the only routes that can possibly match it have 1) an empty array as path; and 2) a matching verb. For example, the only route that can match this event:
+And this route will match any event:
+
+```javascript
+r.listen ('*', []);
+```
+
+If the path of an event is an empty array, the only routes that can possibly match it have 1) an empty array as path; and 2) a matching verb. For example, the only two routes that can match this event:
 
 ```javascript
 r.do ('foo', []);
 ```
 
-is this route:
+are:
 
 ```javascript
 r.listen ('foo', []);
+r.listen ('*', []);
 ```
 
 ### `r.forget`

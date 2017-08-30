@@ -1,5 +1,5 @@
 /*
-recalc - v3.4.0
+recalc - v3.5.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -132,7 +132,8 @@ To run the tests:
          ['verb1', '*',              execute],
          ['verb2', ['some', 'path'], notExecute],
          [{verb: 'verb3', path: ['foo', 'bar']},   execute],
-         ['verb4', [], execute]
+         ['verb4', [], execute],
+         ['verb4', '*', execute]
       ], function (v) {
          r.listen.apply (null, v);
       });
@@ -160,10 +161,10 @@ To run the tests:
       r.do ('verb4', ['a', 'b']);
       r.do ('verb4', []);
 
-      if (r.store.execute    !== 8) error (r, 'Matching error 4.');
+      if (r.store.execute    !== 10) error (r, 'Matching error 4.');
 
       r.do ('*', []);
-      if (r.store.execute    !== 9) error (r, 'Matching error 5.');
+      if (r.store.execute    !== 11) error (r, 'Matching error 5.');
 
    });
 

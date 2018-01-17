@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. The core idea
 
 ## Current status of the project
 
-The current version of recalc, v3.5.1, is considered to be *mostly stable* and *mostly complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
+The current version of recalc, v3.6.0, is considered to be *mostly stable* and *mostly complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
 
 - Add annotated source code.
 
@@ -31,8 +31,8 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/bfd9e2830e733ff8c9d97fd9dd5473b4ff804d4c/dale.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/teishi/f0999bdc2db5d42a7e5c71a016f3dd594996f92f/teishi.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/recalc/7b86fe53a38148e892a4db552bb39d2f5eb40c3d/recalc.js"></script>
+<script src="https://cdn.rawgit.com/fpereiro/teishi/f6da2ec45354300649e511cf5596365bfe157f13/teishi.js"></script>
+<script src=""></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -331,7 +331,7 @@ If we execute the following event:
 r.do ('fire', 'hello');
 ```
 
-Then the route above will receive an `x` of the form `{verb: 'fire', path: ['hello'], cb: ...}` and both `extraArg1` and `extraArg2` will be `undefined`.
+Then the route above will receive an `x` of the form `{verb: 'fire', path: ['hello'], cb: ..., from: [...]}` and both `extraArg1` and `extraArg2` will be `undefined`.
 
 To set `extraArg1` and `extraArg2` to `'foo'` and `'bar'` respectively, you could trigger the following event:
 
@@ -379,6 +379,8 @@ r.do ('setElement', 2, 'something');
 
 The two functions above will set the third element of `r.store` to the value `'something'`. This function can be generalized to arrays and objects, and also to support deletions.
 
+One final thing we left unmentioned: `x.from` is an object that helps you debug nested event calls. To use it, you can pass `x` as the first argument to `r.do`, whenever you are calling it from within a `rfun`: for example, instead of writing `r.do ('verb', 'path')` you would instead write `r.do (x, 'verb', 'path')`. If you do so, you will find that `x.from` contains an array of the event that triggered them (the first element of the array is the last call, the second element is the next to last, etc.) This will only work, however, if you pass the `x` every time. Each of these elements are composed of an array which has as its first element a timestamp, as second element the verb, as third the path, and optional further elements if extra arguments were passed to that particular call.
+
 ## Implementation functions
 
 There's four other functions that support the usage functions. If you override them, you can change the innards of recalc. These are:
@@ -390,7 +392,7 @@ There's four other functions that support the usage functions. If you override t
 
 ## Source code
 
-The complete source code is contained in `recalc.js`. It is about 170 lines long.
+The complete source code is contained in `recalc.js`. It is about 180 lines long.
 
 Annotated source code will be forthcoming when the library stabilizes.
 

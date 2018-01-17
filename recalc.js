@@ -1,5 +1,5 @@
 /*
-recalc - v3.5.1
+recalc - v3.6.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -38,16 +38,24 @@ Please refer to readme.md to read the annotated source (but not yet!).
          ]);
       }
 
-      r.do = function (verb, path) {
+      r.do = function () {
+
+         var x = type (arguments [0]) === 'object' ? arguments [0] : null;
+         var verb = arguments [x ? 1 : 0];
+         var path = arguments [x ? 2 : 1];
 
          if (teishi.simple (path)) path = [path];
+         var args = [x || {}, verb, path].concat ([].slice.call (arguments, x ? 3 : 2));
 
          if (teishi.stop ('r.do', [
+            [x !== null, [function () {
+               return ['x.from', x.from, 'array'];
+            }]],
             ['verb', verb, 'string'],
             r.isPath (path, 'r.do')
          ])) return false;
 
-         r.mill.apply (null, arguments);
+         r.mill.apply (null, args);
          return true;
       }
 
@@ -99,9 +107,12 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
       // *** BACKEND ***
 
-      r.mill = function (verb, path) {
+      r.mill = function (x, verb, path) {
 
-         var args = [{verb: arguments [0], path: arguments [1]}].concat ([].slice.call (arguments, 2));
+         var from = x && x.from ? x.from.slice (0) : [], entry = {};
+         from.unshift ([new Date ().toISOString ()].concat ([].slice.call (arguments, 1)));
+
+         var args = [{from: from, verb: arguments [1], path: arguments [2]}].concat ([].slice.call (arguments, 3));
 
          var inner = function (matching) {
 

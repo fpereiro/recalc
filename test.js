@@ -69,6 +69,10 @@ To run the tests:
          ['someverb', /invalidpath/],
          ['someverb', [/invalid/, 'path']],
          [['someverb'], [/invalid/, 'path']],
+         [/x/, 'verb', 'path'],
+         [[/x/], 'verb', 'path'],
+         [{a: /x/}, 'verb', 'path'],
+         [{from: 'bla'}, 'verb', 'path'],
       ], true, function (args) {
          if (r.do.apply (null, args) !== false) return true;
       })) return error (r, 'Invalid input to r.do was accepted.');
@@ -275,9 +279,7 @@ To run the tests:
 
    tests.push (function () {
 
-      var r = R ();
-
-      var counter = 0;
+      var r = R (), counter = 0;
 
       r.listen ('do', 'it', {id: 'yoestabadiciendoburns', burn: true}, function () {counter++});
 
@@ -285,6 +287,63 @@ To run the tests:
 
       if (counter !== 1) return error (r, 'burnable route wasn\'t executed.');
       if (r.routes.yoestabadiciendoburns) return error (r, 'burnable route wasn\'t burned.');
+
+   });
+
+   tests.push (function () {
+
+      var r = R (), counter = 0;
+
+      r.listen ('a', 'b', function (x) {
+         counter++;
+         r.do (x, 'a', 'c', 1);
+      });
+
+      r.listen ('a', 'c', function (x) {
+         counter++;
+         r.do (x, 'a', 'd', 2);
+      });
+
+      r.listen ('a', 'd', function (x) {
+         counter++;
+         if (type (x.from) !== 'array') return error (r, 'x.from type error.');
+         var err = dale.stopNot (x.from, undefined, function (v, k) {
+            if (type (v) !== 'array') return 'item of x.from has type ' + type (v);
+            if (isNaN (new Date (v [0]).getTime ())) return 'Invalid date in x.from item';
+            if (v.length !== 4) return 'item of x.from misses elements.';
+            if (v [1] !== 'a') return 'item of x.from has wrong verb.';
+            if (type (v [2]) !== 'array' || v [2] [0] !== {2: 'b', 1: 'c', 0: 'd'} [k]) return 'item of x.from has wrong path';
+            if (v [3] !== (k === 0 ? 2 : k === 1 ? 1 : 0)) return 'arg of x.from is not correct.';
+         });
+         if (err) return error (r, err);
+         r.do ('a', 'e', 4);
+      });
+
+      r.listen ('a', 'e', function (x) {
+         counter++;
+         if (type (x.from) !== 'array') return error (r, 'x.from type error.');
+         if (x.from.length !== 1) return error (r, 'x.from broken chain was not broken.');
+         var v = x.from [0];
+         if (type (v) !== 'array') return error (r, 'item of x.from has type ' + type (v));
+         if (v [1] !== 'a' || type (v [2]) !== 'array' || v [2] [0] !== 'e') return error (r, 'wrong items in x.from item from broken chain');
+         from = x.from;
+         r.do (x, 'b', 'a');
+         r.do (x, 'b', 'b');
+      });
+
+      r.listen ('b', 'a', function (x) {
+         if (x.from.length !== 2) return error (r, 'x.from not copied.');
+         counter++;
+      });
+
+      r.listen ('b', 'b', function (x) {
+         if (x.from.length !== 2) return error (r, 'x.from not copied.');
+         counter++;
+      });
+
+      r.do ('a', 'b', 0);
+
+      if (counter !== 6) return error (r, 'x.item sequence not executed fully.');
 
    });
 

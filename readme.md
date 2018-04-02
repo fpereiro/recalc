@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. The core idea
 
 ## Current status of the project
 
-The current version of recalc, v3.6.0, is considered to be *mostly stable* and *mostly complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
+The current version of recalc, v3.7.0, is considered to be *mostly stable* and *mostly complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Future changes planned are:
 
 - Add annotated source code.
 
@@ -31,8 +31,8 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/bfd9e2830e733ff8c9d97fd9dd5473b4ff804d4c/dale.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/teishi/f6da2ec45354300649e511cf5596365bfe157f13/teishi.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/recalc/bb2549fedbebfe954d5a4b7070ccbd2023587a1f/recalc.js"></script>
+<script src="https://cdn.rawgit.com/fpereiro/teishi/60448b5612f7f10f008bffdfedbd6c9c93cf2256/teishi.js"></script>
+<script src=""></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -311,11 +311,14 @@ For example, `r.forget ('foo', function (r) {console.log (r.id)})` will print `f
 
 I lied - you also need to understand how route functions work in order to use recalc. But this is the very last thing.
 
-A route function always receives a `context` as its first argument. The context is an object with three elements:
+A route function always receives a `context` as its first argument. The context is an object with five or six elements:
 
 - `verb`, the verb of the event that matched the route.
 - `path`, the path of the event that matched the route.
+- `args`, an array with extra arguments passed to the event. If no extra arguments were passed, this element won't be present.
 - `cb`, a callback function which you only need to use if your route function is asynchronous.
+- `route`, the matched route.
+- `from`, an array that contains a list of all previous events fired.
 
 As a convention, I name `context` as `x`. Let's see an example:
 
@@ -331,7 +334,7 @@ If we execute the following event:
 r.do ('fire', 'hello');
 ```
 
-Then the route above will receive an `x` of the form `{verb: 'fire', path: ['hello'], cb: ..., from: [...]}` and both `extraArg1` and `extraArg2` will be `undefined`.
+Then the route above will receive an `x` of the form `{verb: 'fire', path: ['hello'], cb: ..., route: {...}, from: [...]}` and both `extraArg1` and `extraArg2` will be `undefined`.
 
 To set `extraArg1` and `extraArg2` to `'foo'` and `'bar'` respectively, you could trigger the following event:
 
@@ -340,6 +343,8 @@ r.do ('fire', 'hello', 'foo', 'bar');
 ```
 
 This means that any parameters passed to `r.do` besides `verb` and `path` will be passed to the route function.
+
+In this case, the `x` will be `{verb: 'fire', path: ['hello'], args: ['foo', 'bar'], cb: ..., route: {...}, from: [...]}`.
 
 Having covered the arguments, we now have to see what you to have in mind when writing route functions. There's two issues: control and data.
 
@@ -379,7 +384,11 @@ r.do ('setElement', 2, 'something');
 
 The two functions above will set the third element of `r.store` to the value `'something'`. This function can be generalized to arrays and objects, and also to support deletions.
 
-One final thing we left unmentioned: `x.from` is an object that helps you debug nested event calls. To use it, you can pass `x` as the first argument to `r.do`, whenever you are calling it from within a `rfun`: for example, instead of writing `r.do ('verb', 'path')` you would instead write `r.do (x, 'verb', 'path')`. If you do so, you will find that `x.from` contains an array of the event that triggered them (the first element of the array is the last call, the second element is the next to last, etc.) This will only work, however, if you pass the `x` every time. Each of these elements are composed of an array which has as its first element a timestamp, as second element the verb, as third the path, and optional further elements if extra arguments were passed to that particular call.
+One final thing we left unmentioned: `x.from` is an object that helps you debug nested event calls. To use it, you can pass `x` as the first argument to `r.do`, whenever you are calling it from within a `rfun`: for example, instead of writing `r.do ('verb', 'path')` you would instead write `r.do (x, 'verb', 'path')`. If you do so, you will find that `x.from` contains an array of objects, each of them of the shape: `{verb: ..., path: ..., args: ..., date: ...}`. Each of these objects describe the verb, path, arguments and date for each of the events fired in the chain. The first object corresponds to the event that triggered the particular rfun you are in, while subsequent items refer to the event that triggered the rfun that in turn triggered another event that triggered the particular rfun you are in.
+
+Notice that each of the objects in `x.from` looks a lot like `x`: `verb` and `path` are the same, `args` is only present if `args` were passed to that particular event; the only differences are that `date` is added, while `route` and `cb` are removed (the former is removed because it has nothing to do with an event, only with the route; while the latter is only useful programatically, not for logging purposes).
+
+A final note: you can invoke `r.do` from outside a `rfun` passing a valid context. For a context to be considered valid, its `from` key must be either undefined, an object or an array of objects (what you put inside the objects is up to you. If you pass an array of objects, that's already considered `x.from`. If you pass a single object, it will be wrapped into an array and considered `x.from`. For example, if you invoke `B.do ({from: {ev: 'onclick', id: 'foo'}, 'a', 'b')`, the `rfuns` triggered by that event will receive a `x.from` array with two elements: the first one will be `{verb: 'a', path: ['b'], date: ...}` and the second one will be `{ev: 'onclick', id: 'foo'}`.
 
 ## Implementation functions
 

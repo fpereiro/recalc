@@ -1,5 +1,5 @@
 /*
-recalc - v3.6.0
+recalc - v3.7.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -71,8 +71,14 @@ To run the tests:
          [['someverb'], [/invalid/, 'path']],
          [/x/, 'verb', 'path'],
          [[/x/], 'verb', 'path'],
-         [{a: /x/}, 'verb', 'path'],
          [{from: 'bla'}, 'verb', 'path'],
+         [{from: 22}, 'verb', 'path'],
+         [{from: null}, 'verb', 'path'],
+         [{from: /null/}, 'verb', 'path'],
+         [{from: ['a']}, 'verb', 'path'],
+         [{from: [{}, '']}, 'verb', 'path'],
+         [{from: [[{}]]}, 'verb', 'path'],
+         [[], 'verb', 'path'],
       ], true, function (args) {
          if (r.do.apply (null, args) !== false) return true;
       })) return error (r, 'Invalid input to r.do was accepted.');
@@ -300,20 +306,39 @@ To run the tests:
       });
 
       r.listen ('a', 'c', function (x) {
+         if (type (x.args) !== 'array') return error (r, 'x.args wasn\'t passed.');
+         if (x.args [0] !== 1 || x.args.length !== 1) return error (r, 'x.args wasn\'t passed properly.');
          counter++;
-         r.do (x, 'a', 'd', 2);
+         r.do (x, 'a', 'd');
       });
 
       r.listen ('a', 'd', function (x) {
          counter++;
+         if (x.verb !== 'a') return error (r, 'x.verb wasn\'t passed.');
+         if (type (x.path) !== 'array') return error (r, 'x.path wasn\'t passed.');
+         if (x.path [0] !== 'd') return error (r, 'x.path wasn\'t passed properly.');
+         if (type (x.route) !== 'object') return error (r, 'x.route wasn\'t passed.');
+         if (x.route.verb !== 'a') return error (r, 'x.route.verb wasn\'t passed.');
+         if (type (x.route.path) !== 'array') return error (r, 'x.route.path wasn\'t passed.');
+         if (x.route.path [0] !== 'd') return error (r, 'x.route.path wasn\'t passed properly.');
          if (type (x.from) !== 'array') return error (r, 'x.from type error.');
          var err = dale.stopNot (x.from, undefined, function (v, k) {
-            if (type (v) !== 'array') return 'item of x.from has type ' + type (v);
-            if (isNaN (new Date (v [0]).getTime ())) return 'Invalid date in x.from item';
-            if (v.length !== 4) return 'item of x.from misses elements.';
-            if (v [1] !== 'a') return 'item of x.from has wrong verb.';
-            if (type (v [2]) !== 'array' || v [2] [0] !== {2: 'b', 1: 'c', 0: 'd'} [k]) return 'item of x.from has wrong path';
-            if (v [3] !== (k === 0 ? 2 : k === 1 ? 1 : 0)) return 'arg of x.from is not correct.';
+            if (k === 3) {
+               if (v.ev !== 'ab') return 'Initial from item wasn\'t used.';
+               if (dale.keys (v).length !== 1) return 'Initial from item was modified.';
+               return;
+            }
+            if (type (v) !== 'object') return 'item of x.from has type ' + type (v) + ' but should be object instead.';
+            if (isNaN (new Date (v.date).getTime ())) return 'Invalid date in x.from object.';
+
+            if (k === 0) {
+               if (v.args !== undefined) return 'x.from args must not be present if no arguments are passed.';
+            }
+            else if (type (v.args) !== 'array') return 'x.from args must be an array.';
+
+            if (v.verb !== 'a') return 'item of x.from has wrong verb.';
+            if (type (v.path) !== 'array' || v.path [0] !== {2: 'b', 1: 'c', 0: 'd'} [k]) return 'item of x.from has wrong path';
+            if (v.args && v.args [0] !== (k === 1 ? 1 : 0)) return 'args contain invalid values.';
          });
          if (err) return error (r, err);
          r.do ('a', 'e', 4);
@@ -324,9 +349,8 @@ To run the tests:
          if (type (x.from) !== 'array') return error (r, 'x.from type error.');
          if (x.from.length !== 1) return error (r, 'x.from broken chain was not broken.');
          var v = x.from [0];
-         if (type (v) !== 'array') return error (r, 'item of x.from has type ' + type (v));
-         if (v [1] !== 'a' || type (v [2]) !== 'array' || v [2] [0] !== 'e') return error (r, 'wrong items in x.from item from broken chain');
-         from = x.from;
+         if (type (v) !== 'object') return error (r, 'item of x.from has type ' + type (v));
+         if (v.verb !== 'a' || type (v.path) !== 'array' || v.path [0] !== 'e') return error (r, 'wrong items in x.from item from broken chain');
          r.do (x, 'b', 'a');
          r.do (x, 'b', 'b');
       });
@@ -341,9 +365,57 @@ To run the tests:
          counter++;
       });
 
-      r.do ('a', 'b', 0);
+      r.do ({from: {ev: 'ab'}}, 'a', 'b', 0);
 
       if (counter !== 6) return error (r, 'x.item sequence not executed fully.');
+
+   });
+
+   tests.push (function () {
+
+      var r = R (), counter = 0;
+
+      r.listen ('o', 'p', function (x) {
+         if (x.from.length !== 1) return error (r, 'Extraneous elements added to x.from sequence.');
+         if (x.from [0].verb !== 'o') return error (r, 'verb on x.from not added correctly.');
+         counter++;
+      });
+
+      r.do ({from: []}, 'o', 'p');
+
+      if (counter !== 1) return error (r, 'r.do (x, ...) sequence #1 not executed fully.');
+
+   });
+
+   tests.push (function () {
+
+      var r = R (), counter = 0;
+
+      r.listen ('o', 'p', function (x) {
+         if (x.from.length !== 3) return error (r, 'Multiple elements not added initially to x.from.');
+         if (x.from [0].verb !== 'o') return error (r, 'verb on x.from not added correctly.');
+         if (x.from [1].foo !== 'bar') return error (r, 'Second element not added initially to x.from.');
+         if (x.from [2].bar !== 'foo') return error (r, 'Third element not added initially to x.from.');
+         counter++;
+      });
+
+      r.do ({from: [{foo: 'bar'}, {bar: 'foo'}]}, 'o', 'p');
+
+      if (counter !== 1) return error (r, 'r.do (x, ...) sequence #2 not executed fully.');
+
+   });
+
+   tests.push (function () {
+
+      var r = R (), counter = 0;
+
+      r.listen ('q', 'r', function (x) {
+         counter++;
+      });
+
+      r.do ({}, 'q', 'r');
+
+      if (counter !== 1) return error (r, 'r.do (x, ...) sequence #3 not executed fully.');
 
    });
 

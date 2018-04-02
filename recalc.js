@@ -1,5 +1,5 @@
 /*
-recalc - v3.6.0
+recalc - v3.7.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -40,7 +40,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
       r.do = function () {
 
-         var x = type (arguments [0]) === 'object' ? arguments [0] : null;
+         var x = type (arguments [0]) === 'object' ? arguments [0] : undefined;
          var verb = arguments [x ? 1 : 0];
          var path = arguments [x ? 2 : 1];
 
@@ -48,8 +48,13 @@ Please refer to readme.md to read the annotated source (but not yet!).
          var args = [x || {}, verb, path].concat ([].slice.call (arguments, x ? 3 : 2));
 
          if (teishi.stop ('r.do', [
-            [x !== null, [function () {
-               return ['x.from', x.from, 'array'];
+            [x !== undefined, [function () {
+               return [
+                  ['x.from', x.from, ['array', 'object', 'undefined'], 'oneOf'],
+                  [type (x.from) === 'array', [function () {
+                     return ['x.from', x.from, 'object', 'each'];
+                  }]],
+               ];
             }]],
             ['verb', verb, 'string'],
             r.isPath (path, 'r.do')
@@ -109,10 +114,18 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
       r.mill = function (x, verb, path) {
 
-         var from = x && x.from ? x.from.slice (0) : [], entry = {};
-         from.unshift ([new Date ().toISOString ()].concat ([].slice.call (arguments, 1)));
+         var from;
+         if (! x.from)                        from = [];
+         else if (type (x.from) === 'object') from = [x.from];
+         else                                 from = x.from.slice (0);
 
-         var args = [{from: from, verb: arguments [1], path: arguments [2]}].concat ([].slice.call (arguments, 3));
+         from.unshift ({date: new Date ().toISOString (), verb: verb, path: path});
+
+         var args = [{verb: arguments [1], path: arguments [2], from: from}].concat ([].slice.call (arguments, 3));
+         if (arguments.length > 3) {
+            args [0].args = [].slice.call (arguments, 3);
+            from [0].args = [].slice.call (arguments, 3);
+         }
 
          var inner = function (matching) {
 
@@ -122,6 +135,7 @@ Please refer to readme.md to read the annotated source (but not yet!).
             }
 
             var route = matching.shift ();
+            args [0].route = route;
             if (! r.routes [route.id]) return inner (matching);
             if (route.burn) r.forget (route.id);
             if (type (route.rfun.apply (null, args)) !== 'function') inner (matching);

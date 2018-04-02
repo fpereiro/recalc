@@ -401,7 +401,7 @@ There's four other functions that support the usage functions. If you override t
 
 ## Source code
 
-The complete source code is contained in `recalc.js`. It is about 180 lines long.
+The complete source code is contained in `recalc.js`. It is about 190 lines long.
 
 Annotated source code will be forthcoming when the library stabilizes.
 

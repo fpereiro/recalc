@@ -1,5 +1,5 @@
 /*
-recalc - v3.7.0
+recalc - v3.7.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -413,9 +413,23 @@ To run the tests:
          counter++;
       });
 
-      r.do ({}, 'q', 'r');
+      r.do ({from: undefined}, 'q', 'r');
 
       if (counter !== 1) return error (r, 'r.do (x, ...) sequence #3 not executed fully.');
+
+   });
+
+   tests.push (function () {
+
+      var r = R (), Error;
+
+      r.listen ('s', 't', {id: 'pong'}, function () {});
+
+      r.forget ('pong', function () {
+         if (r.routes.pong) Error = 'Route wasn\'t removed before forget fun was executed.';
+      });
+
+      if (Error) return error (r, Error);
 
    });
 

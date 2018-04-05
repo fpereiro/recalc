@@ -1,5 +1,5 @@
 /*
-recalc - v3.7.0
+recalc - v3.7.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -103,8 +103,9 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
       r.forget = function (id, fun) {
          if (! r.routes [id]) return log ('Route', id, 'does not exist.');
-         if (fun && type (fun) === 'function') fun (r.routes [id]);
+         var route = r.routes [id];
          delete r.routes [id];
+         if (fun && type (fun) === 'function') fun (route);
          dale.do (r.routes, function (v, k) {
             if (v.parent === id) r.forget (k, fun);
          });

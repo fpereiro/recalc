@@ -1,5 +1,5 @@
 /*
-recalc - v3.7.1
+recalc - v3.8.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -75,6 +75,7 @@ To run the tests:
          [{from: 22}, 'verb', 'path'],
          [{from: null}, 'verb', 'path'],
          [{from: /null/}, 'verb', 'path'],
+         [{from: [[]]}, 'verb', 'path'],
          [{from: ['a']}, 'verb', 'path'],
          [{from: [{}, '']}, 'verb', 'path'],
          [{from: [[{}]]}, 'verb', 'path'],
@@ -99,7 +100,8 @@ To run the tests:
       var r = R ();
       setTimeout (function () {
          if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed.');
-      }, 2000);
+         log ('Success', 'All tests were successful!');
+      }, 500);
       dale.do ([
          function (x) {
             setTimeout (function () {
@@ -233,16 +235,16 @@ To run the tests:
       var fun = function () {};
 
       if (type (r.listen ({verb: 'a', path: 'b'}, fun)) !== 'string')  return error (r, 'listen return error 1.');
-      if (r.listen ({verb: /a/, path: 'b'}, fun) !== false) return error (r, 'listen return error 2.');
-      if (r.listen ({verb: 'a', path: /b/}, fun) !== false) return error (r, 'listen return error 3.');
+      if (r.listen ({verb: null, path: 'b'}, fun) !== false) return error (r, 'listen return error 2.');
+      if (r.listen ({verb: 'a', path: null}, fun) !== false) return error (r, 'listen return error 3.');
       if (r.listen ({verb: 'a', path: 'b', id: /a/}, fun) !== false) return error (r, 'listen return error 4.');
       if (r.listen ({verb: 'a', path: 'b', id: 'a'}, fun) !== 'a')  return error  (r, 'listen return error 5.');
       if (r.listen ({verb: 'a', path: 'b', id: 'a'}, fun) !== false) return error (r, 'listen return error 6.');
       if (r.listen ({verb: 'a', path: 'b', priority: 'единственный'}, fun) !== false) return error (r, 'listen return error 7.');
       if (r.listen ({verb: 'a', path: 'b', foo: 'bar'}, fun) !== false) return error (r, 'listen return error 8.');
       if (type (r.listen ('a', 'b', fun)) !== 'string')  return error (r, 'listen return error 9.');
-      if (r.listen (/a/, 'b', fun) !== false) return error (r, 'listen return error 10.');
-      if (r.listen ('a', /b/, fun) !== false) return error (r, 'listen return error 11.');
+      if (r.listen (NaN, 'b', fun) !== false) return error (r, 'listen return error 10.');
+      if (r.listen ('a', NaN, fun) !== false) return error (r, 'listen return error 11.');
       if (r.listen ('a', 'b', {id: /a/}, fun) !== false) return error (r, 'listen return error 12.');
       if (r.listen ('a', 'b', {id: 'b'}, fun) !== 'b')  return error  (r, 'listen return error 13.');
       if (r.listen ('a', 'b', {id: 'b'}, fun) !== false) return error (r, 'listen return error 14.');
@@ -433,10 +435,85 @@ To run the tests:
 
    });
 
+   tests.push (function () {
+
+      var r = R (), result = [];
+
+      r.listen ('s', /a|b/, function (x) {
+         result.push (x.path);
+      });
+
+      r.do ('s', 'a');
+      r.do ('s', 'b');
+      r.do ('s', 'ab');
+      r.do ('s', 'c');
+      r.do ('s', '*');
+      r.do ('s', ['*', 'b']);
+
+      if (! teishi.eq (result, [['a'], ['b'], ['ab'], ['*'], ['*', 'b']])) return error (r, 'Regex matching error 1.');
+
+      result = [];
+
+      r.listen (/a/, '*', function (x) {
+         result.push (x.path);
+      });
+
+      r.do ('a', 1);
+      r.do ('ba', 2);
+      r.do ('b', 3);
+      r.do ('*', 4);
+
+      if (! teishi.eq (result, [[1], [2], [4]])) return error (r, 'Regex matching error 2.');
+
+      var counter = 0;
+
+      r.listen ('hello', /foo|bar/, function (x, c) {counter += c});
+
+      r.do ('hello', 'foo', 1);
+      r.do ('hello', 'bach', 2);
+      r.do ('hello', 'bar', 3);
+
+      if (counter !== 4) return error (r, 'Regex matching error 3.');
+      counter = 0;
+
+      r.listen (/foo|bar/, 'bach', function (x, c) {counter += c});
+
+      r.do ('foo', 'bach', 1);
+      r.do ('bar', 'bach', 2);
+      r.do ('bar', 'bar', 3);
+
+      if (counter !== 3) return error (r, 'Regex matching error 4.');
+
+   });
+
+   tests.push (function () {
+
+      var r = R (), result = [];
+
+      var dmatch = function (route, ev) {
+         if (! r.compare (route.verb, ev.verb)) return;
+         return dale.stop (ev.path.slice (0, route.path.length), false, function (v, k) {
+            return r.compare (route.path [k], v);
+         });
+      }
+
+      r.listen ('change', ['a', 'b', 'c'], {match: dmatch}, function (x) {
+         result.push (x.path);
+      });
+
+      r.do ('change', ['a', 'b', 'c']);
+      r.do ('change', ['a', 'b', 'c', 'd']);
+      r.do ('*', ['a', 'b', 'c', 'd']);
+      r.do ('change', ['a', 'b', 'd']);
+      r.do ('change', ['a']);
+      r.do ('change', ['a', 'b']);
+
+      if (! teishi.eq (result, [['a', 'b', 'c'], ['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd'], ['a'], ['a', 'b']])) return error (r, 'Deep match error.');
+
+   });
+
    dale.do (tests, function (v) {
       return v ();
    });
-
-   log ('Success', 'All tests were successful!');
 
 }) ();

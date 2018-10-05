@@ -1,9 +1,9 @@
 /*
-recalc - v3.7.1
+recalc - v3.8.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
-Please refer to readme.md to read the annotated source (but not yet!).
+Please refer to readme.md to read the annotated source.
 */
 
 (function () {
@@ -30,13 +30,6 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
       r.routes  = {};
       r.store   = store || {};
-
-      r.isPath = function (path, fun) {
-         return teishi.v (fun, [
-            ['path', path, ['array', 'integer', 'string'], 'oneOf'],
-            ['path', path, ['integer', 'string'], 'eachOf'],
-         ]);
-      }
 
       r.do = function () {
 
@@ -79,14 +72,15 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
          if (teishi.stop ('r.listen', [
             ['options',   options, 'object'],
-            ['keys of options', dale.keys (options), ['verb', 'path', 'id', 'parent', 'priority', 'burn'], 'eachOf', teishi.test.equal],
+            ['keys of options', dale.keys (options), ['verb', 'path', 'id', 'parent', 'priority', 'burn', 'match'], 'eachOf', teishi.test.equal],
             function () {return [
-               ['options.verb', options.verb, 'string'],
-               r.isPath (options.path, 'r.listen'),
+               ['options.verb', options.verb, ['string', 'regex'], 'oneOf'],
+               r.isPath (options.path, 'r.listen', true),
                ['options.id',       options.id,       ['string', 'integer', 'undefined'], 'oneOf'],
                ['options.parent',   options.parent,   ['string', 'integer', 'undefined'], 'oneOf'],
                ['options.priority', options.priority, ['undefined', 'integer'],           'oneOf'],
-               ['options.burn',     options.burn,     ['undefined', 'boolean'],           'oneOf']
+               ['options.burn',     options.burn,     ['undefined', 'boolean'],           'oneOf'],
+               ['options.match',    options.match,    ['undefined', 'function'], 'oneOf']
             ]},
             ['route function', rfun, 'function']
          ])) return false;
@@ -102,16 +96,34 @@ Please refer to readme.md to read the annotated source (but not yet!).
       }
 
       r.forget = function (id, fun) {
+         if (fun !== undefined && type (fun) !== 'function') return log ('Second argument to r.forget must be a function or undefined.');
          if (! r.routes [id]) return log ('Route', id, 'does not exist.');
          var route = r.routes [id];
          delete r.routes [id];
-         if (fun && type (fun) === 'function') fun (route);
+         if (fun) fun (route);
          dale.do (r.routes, function (v, k) {
             if (v.parent === id) r.forget (k, fun);
          });
       }
 
       // *** BACKEND ***
+
+      r.isPath = function (path, fun, regex) {
+         return teishi.v (fun, [
+            ['path', path, ['array', 'integer', 'string'].concat (regex ? 'regex' : []), 'oneOf'],
+            ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf'],
+         ]);
+      }
+
+      r.random = function () {
+         return Math.random ().toString (16).slice (2);
+      }
+
+      r.compare = function (rvp, evp) {
+         if (rvp === '*' || evp === '*') return true;
+         if (type (rvp) === 'regex') return (evp + '').match (rvp) !== null;
+         return rvp === evp;
+      }
 
       r.mill = function (x, verb, path) {
 
@@ -128,18 +140,18 @@ Please refer to readme.md to read the annotated source (but not yet!).
             from [0].args = [].slice.call (arguments, 3);
          }
 
-         var inner = function (matching) {
+         var inner = function (matchingRoutes) {
 
-            if (matching.length === 0) return;
+            if (matchingRoutes.length === 0) return;
             args [0].cb = function () {
-               inner (matching);
+               inner (matchingRoutes);
             }
 
-            var route = matching.shift ();
+            var route = matchingRoutes.shift ();
             args [0].route = route;
-            if (! r.routes [route.id]) return inner (matching);
+            if (! r.routes [route.id]) return inner (matchingRoutes);
             if (route.burn) r.forget (route.id);
-            if (type (route.rfun.apply (null, args)) !== 'function') inner (matching);
+            if (type (route.rfun.apply (null, args)) !== 'function') inner (matchingRoutes);
          }
 
          inner (r.sort (r.match (verb, path, r.routes)));
@@ -151,20 +163,18 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
          dale.do (routes, function (route) {
 
-            if (verb !== '*' && route.verb !== '*' && route.verb !== verb) return;
+            if (route.match) return route.match (route, {verb: verb, path: path}) === true ? matching.push (route) : undefined;
+
+            if (! r.compare (route.verb, verb)) return;
 
             if (route.path.length > path.length) return;
 
             if (route.path.length === 0) return matching.push (route);
 
-            dale.stop (route.path, false, function (v2, k2) {
-               if (path [k2] !== undefined && path [k2] !== '*' && v2 !== '*' && path [k2] !== v2) return false;
+            if (dale.stop (route.path, false, function (v2, k2) {
+               return r.compare (v2, path [k2]);
+            })) matching.push (route);
 
-               if (k2 === route.path.length - 1) {
-                  matching.push (route);
-                  return false;
-               }
-            });
          });
 
          return matching;
@@ -172,14 +182,8 @@ Please refer to readme.md to read the annotated source (but not yet!).
 
       r.sort = function (matching) {
          return matching.sort (function (a, b) {
-            var p1 = a.priority || 0;
-            var p2 = b.priority || 0;
-            return p2 - p1;
+            return (b.priority || 0) - (a.priority || 0);
          });
-      }
-
-      r.random = function () {
-         return Math.random ().toString (16).slice (2);
       }
 
       return r;

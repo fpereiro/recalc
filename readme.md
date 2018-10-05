@@ -30,7 +30,7 @@ Or you can use these links to use the latest version - courtesy of [RawGit](http
 ```html
 <script src="https://cdn.rawgit.com/fpereiro/dale/e3d6f036c62a743eddc26b8322f5ff028c23615c/dale.js"></script>
 <script src="https://cdn.rawgit.com/fpereiro/teishi/76b60ec500fce36f32a079bba45d4996df075d1a/teishi.js"></script>
-<script src=""></script>
+<script src="https://cdn.rawgit.com/fpereiro/recalc/0379cc86c102c9747298d0a6ead003425cc12abd/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -223,7 +223,7 @@ r.do ('hello', 'bach');
 r.do ('hello', 'bar');
 ```
 
-Path verbs can also be regexes. For example, this route:
+Route verbs can also be regexes. For example, this route:
 
 ```javascript
 r.listen (/foo|bar/, 'bach', function () {...});
@@ -755,7 +755,7 @@ If `fun` is present, we invoke it passing `route` as its first argument. This is
 
 We iterate all the other routes; if any of them has `id` as its parent, we recursively call `r.forget` on it, taking care to also pass `fun`. This allows for tree-like deletion of routes. Notice that if other routes have `id` as a parent, `fun` will be executed multiple times.
 
-```
+```javascript
          dale.do (r.routes, function (v, k) {
             if (v.parent === id) r.forget (k, fun);
          });

@@ -1,5 +1,5 @@
 /*
-recalc - v3.8.0
+recalc - v3.8.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 

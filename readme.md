@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v3.8.0, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v3.8.1, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 ## Installation
 
@@ -25,12 +25,12 @@ recalc is written in Javascript. You can use it in the browser by sourcing the d
 <script src="recalc.js"></script>
 ```
 
-Or you can use these links to use the latest version - courtesy of [RawGit](https://rawgit.com) and [MaxCDN](https://maxcdn.com).
+Or you can use these links to the latest version - courtesy of [jsDelivr](https://jsdelivr.com).
 
 ```html
-<script src="https://cdn.rawgit.com/fpereiro/dale/e3d6f036c62a743eddc26b8322f5ff028c23615c/dale.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/teishi/76b60ec500fce36f32a079bba45d4996df075d1a/teishi.js"></script>
-<script src="https://cdn.rawgit.com/fpereiro/recalc/0379cc86c102c9747298d0a6ead003425cc12abd/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@ac36810de20ee18d5d5077bd2ccb94628d621e58/dale.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@e1d6313b4269c54d163ac2097d6713d9e9e3f213/teishi.js"></script>
+<script src=""></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -437,7 +437,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v3.8.0
+recalc - v3.8.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 

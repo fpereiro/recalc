@@ -1,5 +1,5 @@
 /*
-recalc - v3.8.1
+recalc - v3.8.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -510,6 +510,53 @@ To run the tests:
 
       if (! teishi.eq (result, [['a', 'b', 'c'], ['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd'], ['a'], ['a', 'b']])) return error (r, 'Deep match error.');
 
+   });
+
+   tests.push (function () {
+
+      var r = R ();
+
+      r.listen ('a', [], function (x) {
+         r.do (x, 'b', []);
+         r.do (x, 'c', []);
+      });
+
+      r.listen ('b', [], function (x) {
+         r.do (x, 'd', []);
+      });
+
+      r.listen ('c', [], function (x) {
+         if (type (x.from) !== 'array') return error (r, 'Invalid x.from array.');
+         delete x.from [0].date;
+         delete x.from [1].date;
+         if (! teishi.eq (x.from, [
+            {verb: 'c', path: []},
+            {verb: 'a', path: []}
+         ])) return error (r, 'x.from not copied when doing two calls from same rfun.');
+      });
+
+      r.do ('a', []);
+   });
+
+   tests.push (function () {
+
+      var r = R (), counter;
+
+      r.listen ('a', [], {priority: 1}, function (x) {
+         setTimeout (function () {
+            counter = 1;
+            x.cb ();
+         }, 10);
+         return x.cb;
+      });
+
+      r.listen ('a', [], function () {
+         if (counter !== 1) return error (r, 'async sequence wasn\'t executed in order.');
+      });
+
+      r.do ('a', []);
+
+      if (counter !== undefined) return error (r, 'Something very strange just happened; sync call executed after async!');
    });
 
    dale.do (tests, function (v) {

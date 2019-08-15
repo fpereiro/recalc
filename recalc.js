@@ -1,5 +1,5 @@
 /*
-recalc - v3.8.2
+recalc - v4.0.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -28,38 +28,42 @@ Please refer to readme.md to read the annotated source.
 
       var r = {};
 
-      r.routes  = {};
-      r.store   = store || {};
+      r.listeners = {};
+      r.store     = store || {};
+      r.log       = [];
 
-      r.do = function () {
+      r.say = function () {
 
          var x = type (arguments [0]) === 'object' ? arguments [0] : undefined;
          var verb = arguments [x ? 1 : 0];
          var path = arguments [x ? 2 : 1];
 
          if (teishi.simple (path)) path = [path];
-         var args = [x || {}, verb, path].concat ([].slice.call (arguments, x ? 3 : 2));
 
-         if (teishi.stop ('r.do', [
+         if (teishi.stop ('r.say', [
+            ['context', x, ['object', 'undefined'], 'oneOf'],
             [x !== undefined, [function () {
-               return [
-                  ['x.from', x.from, ['array', 'object', 'undefined'], 'oneOf'],
-                  [type (x.from) === 'array', [function () {
-                     return ['x.from', x.from, 'object', 'each'];
-                  }]],
-               ];
+               return ['x.from', x.from, ['string', 'undefined'], 'oneOf'];
             }]],
             ['verb', verb, 'string'],
-            r.isPath (path, 'r.do')
+            r.isPath (path, 'r.say')
          ])) return false;
 
-         r.mill.apply (null, args);
-         return true;
+         var oargs = arguments;
+         var args  = arguments.length === (x ? 3 : 2) ? undefined : dale.go (dale.times (arguments.length - (x ? 3 : 2), x ? 3 : 2), function (k) {
+            return oargs [k];
+         });
+
+         var from = x ? x.from : undefined;
+         x = {from: 'E' + r.random (), verb: verb, path: path, args: args};
+         r.logpush (from, x.from, verb, path, args);
+         r.mill.apply (null, [x].concat (args));
+         return x.from;
       }
 
       r.listen = function () {
 
-         var options, rfun = arguments [arguments.length - 1];
+         var options, lfun = arguments [arguments.length - 1];
          if (arguments.length < 2) return log ('r.listen', 'Too few arguments passed to r.listen');
          if (arguments.length === 2) options = arguments [0];
          else {
@@ -82,26 +86,26 @@ Please refer to readme.md to read the annotated source.
                ['options.burn',     options.burn,     ['undefined', 'boolean'],           'oneOf'],
                ['options.match',    options.match,    ['undefined', 'function'], 'oneOf']
             ]},
-            ['route function', rfun, 'function']
+            ['listener function', lfun, 'function']
          ])) return false;
 
          if (options.id) {
-            if (r.routes [options.id]) return log ('r.listen', 'A route with id', options.id, 'already exists.');
+            if (r.listeners [options.id]) return log ('r.listen', 'A listener with id', options.id, 'already exists.');
          }
          else options.id = r.random ();
-         options.rfun = rfun;
+         options.lfun = lfun;
 
-         r.routes [options.id] = options;
+         r.listeners [options.id] = options;
          return options.id;
       }
 
       r.forget = function (id, fun) {
          if (fun !== undefined && type (fun) !== 'function') return log ('Second argument to r.forget must be a function or undefined.');
-         if (! r.routes [id]) return log ('Route', id, 'does not exist.');
-         var route = r.routes [id];
-         delete r.routes [id];
-         if (fun) fun (route);
-         dale.do (r.routes, function (v, k) {
+         if (! r.listeners [id]) return log ('listener', id, 'does not exist.');
+         var listener = r.listeners [id];
+         delete r.listeners [id];
+         if (fun) fun (listener);
+         dale.go (r.listeners, function (v, k) {
             if (v.parent === id) r.forget (k, fun);
          });
       }
@@ -125,56 +129,46 @@ Please refer to readme.md to read the annotated source.
          return rvp === evp;
       }
 
-      r.mill = function (x, verb, path) {
-
-         var from;
-         if (! x.from)                        from = [];
-         else if (type (x.from) === 'object') from = [x.from];
-         else                                 from = x.from.slice (0);
-
-         from.unshift ({date: new Date ().toISOString (), verb: verb, path: path});
-
-         var args = [{verb: arguments [1], path: arguments [2], from: from}].concat ([].slice.call (arguments, 3));
-         if (arguments.length > 3) {
-            args [0].args = [].slice.call (arguments, 3);
-            from [0].args = [].slice.call (arguments, 3);
-         }
-
-         var inner = function (matchingRoutes) {
-
-            if (matchingRoutes.length === 0) return;
-            args [0].cb = function () {
-               inner (matchingRoutes);
-            }
-
-            var route = matchingRoutes.shift ();
-            args [0].route = route;
-            if (! r.routes [route.id]) return inner (matchingRoutes);
-            if (route.burn) r.forget (route.id);
-            if (type (route.rfun.apply (null, args)) !== 'function') inner (matchingRoutes);
-         }
-
-         inner (r.sort (r.match (verb, path, r.routes)));
+      r.logpush = function (from, id, verb, path, args) {
+         if (r.log) r.log.push ({t: teishi.time (), from: from, id: id, verb: verb, path: path, args: args});
       }
 
-      r.match = function (verb, path, routes) {
+      r.mill = function (x) {
+
+         var args = dale.go (arguments, function (v) {return v});
+
+         var inner = function (matching) {
+
+            if (matching.length === 0) return;
+            args [0].cb = function () {
+               inner (matching);
+            }
+
+            var listener = matching.shift ();
+            args [0].listener = listener;
+            if (! r.listeners [listener.id]) return inner (matching);
+            if (listener.burn) r.forget (listener.id);
+            if (type (listener.lfun.apply (null, args)) !== 'function') inner (matching);
+         }
+
+         inner (r.sort (r.match (x.verb, x.path, r.listeners)));
+      }
+
+      r.match = function (verb, path, listeners) {
 
          var matching = [];
 
-         dale.do (routes, function (route) {
+         dale.go (listeners, function (listener) {
 
-            if (route.match) return route.match (route, {verb: verb, path: path}) === true ? matching.push (route) : undefined;
+            if (listener.match) return listener.match (listener, {verb: verb, path: path}) === true ? matching.push (listener) : undefined;
 
-            if (! r.compare (route.verb, verb)) return;
+            if (! r.compare (listener.verb, verb)) return;
 
-            if (route.path.length > path.length) return;
+            if (listener.path.length === 0 || path.length === 0) return matching.push (listener);
 
-            if (route.path.length === 0) return matching.push (route);
-
-            if (dale.stop (route.path, false, function (v2, k2) {
-               return r.compare (v2, path [k2]);
-            })) matching.push (route);
-
+            if (dale.stop (dale.times (Math.min (listener.path.length, path.length), 0), false, function (k) {
+               return r.compare (listener.path [k], path [k]);
+            })) matching.push (listener);
          });
 
          return matching;

@@ -1,5 +1,5 @@
 /*
-recalc - v3.8.2
+recalc - v4.0.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -26,7 +26,7 @@ To run the tests:
    var teishi = isNode ? require ('teishi')      : window.teishi;
    var R      = isNode ? require ('./recalc.js') : window.R;
 
-   var type   = teishi.t, log = teishi.l;
+   var type   = teishi.t, log = teishi.l, eq = teishi.eq;
 
    var tests  = [];
 
@@ -35,7 +35,7 @@ To run the tests:
    var error  = function (r, error) {
       log ('DEBUG', {
          store:  r.store,
-         routes: r.routes
+         listeners: r.listeners
       });
       R.perf = false;
       throw new Error (error);
@@ -53,7 +53,7 @@ To run the tests:
             ['R () array store',   R ([]).store, 'array'],
             ['R () object store',  R ({a: 'b'}).store.a,     'b', teishi.test.equal],
             ['R () object store',  R (['a', 'b']).store [1], 'b', teishi.test.equal],
-            ['r.routes', R ().routes, 'object']
+            ['r.listeners', R ().listeners, 'object']
          ]}
       ], function (err) {
          error (R (), err);
@@ -71,20 +71,28 @@ To run the tests:
          [['someverb'], [/invalid/, 'path']],
          [/x/, 'verb', 'path'],
          [[/x/], 'verb', 'path'],
-         [{from: 'bla'}, 'verb', 'path'],
          [{from: 22}, 'verb', 'path'],
          [{from: null}, 'verb', 'path'],
          [{from: /null/}, 'verb', 'path'],
+         [{from: []}, 'verb', 'path'],
+         [{from: {}}, 'verb', 'path'],
          [{from: [[]]}, 'verb', 'path'],
          [{from: ['a']}, 'verb', 'path'],
          [{from: [{}, '']}, 'verb', 'path'],
          [{from: [[{}]]}, 'verb', 'path'],
          [[], 'verb', 'path'],
       ], true, function (args) {
-         if (r.do.apply (null, args) !== false) return true;
-      })) return error (r, 'Invalid input to r.do was accepted.');
+         if (r.say.apply (null, args) !== false) return true;
+      })) return error (r, 'Invalid input to r.say was accepted.');
 
-      if (r.do ('fire', 'here') !== true) return error (r, 'Valid input to r.do didn\'t return true.');
+      var id = r.say ('fire', 'here');
+      if (type (id) !== 'string' || id.split ('') [0] !== 'E') return error (r, 'Invalid event id.');
+      if (r.log.length !== 1) return error (r, 'Log not added.');
+      var flog = r.log [0];
+      if (type (flog) !== 'object') return error (r, 'Invalid log type.');
+      if (type (flog.t) !== 'integer' || Math.abs (teishi.time () - flog.t) > 1000) return error (r, 'Invalid timestamp in log.');
+      delete flog.t;
+      if (! teishi.eq (flog, {from: undefined, id: id, verb: 'fire', path: ['here'], args: undefined})) return error (r, 'Invalid log structure.');
    });
 
    tests.push (function () {
@@ -92,47 +100,17 @@ To run the tests:
       var id = r.listen ('do', '*', function (x, arg1, arg2) {
          if (arg1 !== 'foo' || arg2 !== 'bar') return error (r, 'Extra arguments weren\'t passed to rfun.');
       });
-      if (type (id) !== 'string') return error (r, 'r.listen didn\'t return id of the created route.');
-      r.do ('do', '*', 'foo', 'bar');
+      if (type (id) !== 'string') return error (r, 'r.listen didn\'t return id of the created listener.');
+      r.say ('do', '*', 'foo', 'bar');
    });
 
    tests.push (function () {
-      var r = R ();
-      setTimeout (function () {
-         if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed.');
-         log ('Success', 'All tests were successful!');
-      }, 500);
-      dale.do ([
-         function (x) {
-            setTimeout (function () {
-               r.store.value = 'one';
-               x.cb ();
-            }, 100);
-            return x.cb;
-         },
-         function (s) {
-            r.store.value += 'two';
-         },
-         function (x) {
-            setTimeout (function () {
-               r.store.value += 'three';
-               x.cb ();
-            }, 100);
-            return x.cb;
-         },
-         function () {
-            if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed in order: ' + r.store.value);
-         }
-      ], function (v, k) {
-         r.listen ('fire', '*', {priority: 2 - k}, v);
-      });
-      r.do ('fire', '*');
    });
 
    tests.push (function () {
       var r = R ({execute: 0, notExecute: 0});
 
-      var execute = function () {
+      var execute = function (x) {
          r.store.execute++;
       }
 
@@ -140,7 +118,7 @@ To run the tests:
          r.store.notExecute++;
       }
 
-      dale.do ([
+      dale.go ([
          ['verb1', '*',              execute],
          ['verb2', ['some', 'path'], notExecute],
          [{verb: 'verb3', path: ['foo', 'bar']},   execute],
@@ -150,40 +128,43 @@ To run the tests:
          r.listen.apply (null, v);
       });
 
-      r.do ('verb1', '*');
-      r.do ('verb1', ['*']);
-      r.do ('verb1', ['aaa']);
-      r.do ('verb1', ['aaa', 'bbb']);
-      r.do ('verb3', ['foo', 'bar', 'bar']);
+      r.say ('verb1', '*');
+      r.say ('verb1', ['*']);
+      r.say ('verb1', ['aaa']);
+      r.say ('verb1', ['aaa', 'bbb']);
+      r.say ('verb3', ['foo', 'bar', 'bar']);
 
       if (r.store.execute    !== 5) error (r, 'Matching error 1.');
 
-      r.do ('verb3', ['some', 'path']);
-      r.do ('verb3', 'foo');
-      r.do ('verb3', ['foo']);
+      r.say ('verb2', ['some', 'path']);
+      r.say ('verb3', ['some', 'path']);
+      r.say ('verb3', 'foo');
+      r.say ('verb3', ['foo']);
 
-      if (r.store.execute    !== 5) error (r, 'Matching error 2.');
+      if (r.store.execute    !== 7) error (r, 'Matching error 2.');
 
-      r.do ('verb2', ['some', 'Path', 'here']);
-      r.do ('verb5', 'whatever');
+      r.say ('verb2', ['some', 'Path', 'here']);
+      r.say ('verb5', 'whatever');
 
-      if (r.store.notExecute !== 0) error (r, 'Matching error 3.');
+      if (r.store.notExecute !== 1) error (r, 'Matching error 3.');
 
-      r.do ('verb4', 'a');
-      r.do ('verb4', ['a', 'b']);
-      r.do ('verb4', []);
-
-      if (r.store.execute    !== 10) error (r, 'Matching error 4.');
-
-      r.do ('*', []);
+      r.say ('verb4', 'a');
+      if (r.store.execute    !== 9) error (r, 'Matching error 4.');
+      r.say ('verb4', ['a', 'b']);
       if (r.store.execute    !== 11) error (r, 'Matching error 5.');
+      r.say ('verb4', []);
+      if (r.store.execute    !== 13) error (r, 'Matching error 6.');
+      r.say ('verb4', ['*']);
+      if (r.store.execute    !== 15) error (r, 'Matching error 7.');
+      r.say ('verb4', '*');
+      if (r.store.execute    !== 17) error (r, 'Matching error 8.');
 
    });
 
    tests.push (function () {
       var r = R ();
 
-      dale.do ([
+      dale.go ([
          function () {r.store.value = 'a'},
          function () {r.store.value += 'b'},
          function () {
@@ -193,21 +174,21 @@ To run the tests:
          r.listen ('do', 'it', {priority: 2 - k}, v);
       });
 
-      r.do ('do', 'it');
+      r.say ('do', 'it');
 
    });
 
    tests.push (function () {
       var r = R ();
 
-      dale.do ([
+      dale.go ([
          ['do', 'it',                function () {r.store.value += 'b'}],
          ['do', 'it', {priority: 1}, function () {r.store.value = 'a'}]
       ], function (v) {
          r.listen.apply (null, v);
       });
 
-      r.do ('do', 'it');
+      r.say ('do', 'it');
 
       if (r.store.value !== 'ab') return error (r, 'Filter priority 1 error.');
    });
@@ -215,7 +196,7 @@ To run the tests:
    tests.push (function () {
       var r = R ();
 
-      dale.do ([
+      dale.go ([
          ['do', 'it', {priority: -1}, function () {r.store.value += 'c'}],
          ['do', 'it',                 function () {r.store.value += 'b'}],
          ['do', 'it', {priority: 1},  function () {r.store.value = 'a'}]
@@ -223,7 +204,7 @@ To run the tests:
          r.listen.apply (null, v);
       });
 
-      r.do ('do', 'it');
+      r.say ('do', 'it');
 
       if (r.store.value !== 'abc') return error (r, 'Filter priority 2 error.');
    });
@@ -270,7 +251,7 @@ To run the tests:
 
       r.forget ('a', function (r) {onforget += r.id});
 
-      if (! r.routes.b || dale.keys (r.routes).length !== 1) return error (r, 'forget error.');
+      if (! r.listeners.b || dale.keys (r.listeners).length !== 1) return error (r, 'forget error.');
 
       if (onforget !== 'ac') return error (r, 'r.forget didn\'t execute onforget function.');
 
@@ -281,7 +262,7 @@ To run the tests:
 
       r.forget ('a', function (r) {onforget += r.id});
 
-      if (dale.keys (r.routes).length !== 0) return error (r, 'forget error.');
+      if (dale.keys (r.listeners).length !== 0) return error (r, 'forget error.');
       if (! onforget.match (/^acab/)) return error (r, 'r.forget didn\'t execute onforget function.');
    });
 
@@ -291,10 +272,10 @@ To run the tests:
 
       r.listen ('do', 'it', {id: 'yoestabadiciendoburns', burn: true}, function () {counter++});
 
-      r.do ('do', 'it');
+      r.say ('do', 'it');
 
-      if (counter !== 1) return error (r, 'burnable route wasn\'t executed.');
-      if (r.routes.yoestabadiciendoburns) return error (r, 'burnable route wasn\'t burned.');
+      if (counter !== 1) return error (r, 'burnable listener wasn\'t executed.');
+      if (r.listeners.yoestabadiciendoburns) return error (r, 'burnable listener wasn\'t burned.');
 
    });
 
@@ -302,16 +283,18 @@ To run the tests:
 
       var r = R (), counter = 0;
 
+      var id = r.say ('foo', 'bar');
+
       r.listen ('a', 'b', function (x) {
          counter++;
-         r.do (x, 'a', 'c', 1);
+         r.say (x, 'a', 'c', 1);
       });
 
       r.listen ('a', 'c', function (x) {
          if (type (x.args) !== 'array') return error (r, 'x.args wasn\'t passed.');
          if (x.args [0] !== 1 || x.args.length !== 1) return error (r, 'x.args wasn\'t passed properly.');
          counter++;
-         r.do (x, 'a', 'd');
+         r.say (x, 'a', 'd');
       });
 
       r.listen ('a', 'd', function (x) {
@@ -319,58 +302,57 @@ To run the tests:
          if (x.verb !== 'a') return error (r, 'x.verb wasn\'t passed.');
          if (type (x.path) !== 'array') return error (r, 'x.path wasn\'t passed.');
          if (x.path [0] !== 'd') return error (r, 'x.path wasn\'t passed properly.');
-         if (type (x.route) !== 'object') return error (r, 'x.route wasn\'t passed.');
-         if (x.route.verb !== 'a') return error (r, 'x.route.verb wasn\'t passed.');
-         if (type (x.route.path) !== 'array') return error (r, 'x.route.path wasn\'t passed.');
-         if (x.route.path [0] !== 'd') return error (r, 'x.route.path wasn\'t passed properly.');
-         if (type (x.from) !== 'array') return error (r, 'x.from type error.');
-         var err = dale.stopNot (x.from, undefined, function (v, k) {
-            if (k === 3) {
-               if (v.ev !== 'ab') return 'Initial from item wasn\'t used.';
-               if (dale.keys (v).length !== 1) return 'Initial from item was modified.';
-               return;
-            }
-            if (type (v) !== 'object') return 'item of x.from has type ' + type (v) + ' but should be object instead.';
-            if (isNaN (new Date (v.date).getTime ())) return 'Invalid date in x.from object.';
+         if (type (x.listener) !== 'object') return error (r, 'x.listener wasn\'t passed.');
+         if (x.listener.verb !== 'a') return error (r, 'x.listener.verb wasn\'t passed.');
+         if (type (x.listener.path) !== 'array') return error (r, 'x.listener.path wasn\'t passed.');
+         if (x.listener.path [0] !== 'd') return error (r, 'x.listener.path wasn\'t passed properly.');
+         if (type (x.from) !== 'string') return error (r, 'x.from type error.');
 
-            if (k === 0) {
-               if (v.args !== undefined) return 'x.from args must not be present if no arguments are passed.';
-            }
-            else if (type (v.args) !== 'array') return 'x.from args must be an array.';
+         if (r.log.length !== 4) return error (r, 'Invalid r.log length.');
 
-            if (v.verb !== 'a') return 'item of x.from has wrong verb.';
-            if (type (v.path) !== 'array' || v.path [0] !== {2: 'b', 1: 'c', 0: 'd'} [k]) return 'item of x.from has wrong path';
-            if (v.args && v.args [0] !== (k === 1 ? 1 : 0)) return 'args contain invalid values.';
+         var lid;
+
+         var err = dale.stopNot (r.log, undefined, function (v, k) {
+            if (k === 0 && v.id !== id) return 'Passed x.from was ignored.';
+            if (k > 0 && v.from !== r.log [k - 1].id) return 'x.from chain has invalid id.';
+            if (! teishi.eq (['foo', 'a', 'a', 'a'] [k], v.verb)) return 'r.log verb mismatch.';
+            if (! teishi.eq ([['bar'], ['b'], ['c'], ['d']] [k], v.path)) return 'r.log path mismatch.';
+            if (! teishi.eq ([undefined, [0], [1], undefined] [k], v.args)) return 'r.log args mismatch.';
          });
+
          if (err) return error (r, err);
-         r.do ('a', 'e', 4);
+         r.say ('a', 'e', 4);
       });
 
       r.listen ('a', 'e', function (x) {
          counter++;
-         if (type (x.from) !== 'array') return error (r, 'x.from type error.');
-         if (x.from.length !== 1) return error (r, 'x.from broken chain was not broken.');
-         var v = x.from [0];
-         if (type (v) !== 'object') return error (r, 'item of x.from has type ' + type (v));
-         if (v.verb !== 'a' || type (v.path) !== 'array' || v.path [0] !== 'e') return error (r, 'wrong items in x.from item from broken chain');
-         r.do (x, 'b', 'a');
-         r.do (x, 'b', 'b');
+         var llog = teishi.last (r.log);
+         if (x.from !== llog.id) return error (r, 'x.from type error.');
+         if (llog.from !== undefined) return error (r, 'x.from broken chain was not broken.');
+         if (llog.verb !== 'a' || ! teishi.eq (llog.path, ['e'])) return error (r, 'wrong items in x.from item from broken chain');
+         r.say (x, 'b', 'a');
+         r.say (x, 'b', 'b');
       });
 
       r.listen ('b', 'a', function (x) {
-         if (x.from.length !== 2) return error (r, 'x.from not copied.');
+         var llog = teishi.last (r.log);
+         var blog = r.log [r.log.length - 2];
+         if (llog.from !== blog.id) return error (r, 'x.from not passed properly #1.');
+         if (llog.verb !== 'b' || ! teishi.eq (llog.path, ['a'])) return (r, 'x.from log contains invalid verb/path #1.');
          counter++;
       });
 
       r.listen ('b', 'b', function (x) {
-         if (x.from.length !== 2) return error (r, 'x.from not copied.');
+         var llog = teishi.last (r.log);
+         var blog = r.log [r.log.length - 3];
+         if (llog.from !== blog.id) return error (r, 'x.from not passed properly #2.');
+         if (llog.verb !== 'b' || ! teishi.eq (llog.path, ['b'])) return (r, 'x.from log contains invalid verb/path #2.');
          counter++;
       });
 
-      r.do ({from: {ev: 'ab'}}, 'a', 'b', 0);
+      r.say ({from: id}, 'a', 'b', 0);
 
       if (counter !== 6) return error (r, 'x.item sequence not executed fully.');
-
    });
 
    tests.push (function () {
@@ -378,32 +360,14 @@ To run the tests:
       var r = R (), counter = 0;
 
       r.listen ('o', 'p', function (x) {
-         if (x.from.length !== 1) return error (r, 'Extraneous elements added to x.from sequence.');
-         if (x.from [0].verb !== 'o') return error (r, 'verb on x.from not added correctly.');
+         var llog = teishi.last (r.log);
+         if (llog.from !== 'abc') return error (r, 'Incorrect x.from.');
          counter++;
       });
 
-      r.do ({from: []}, 'o', 'p');
+      r.say ({from: 'abc'}, 'o', 'p');
 
-      if (counter !== 1) return error (r, 'r.do (x, ...) sequence #1 not executed fully.');
-
-   });
-
-   tests.push (function () {
-
-      var r = R (), counter = 0;
-
-      r.listen ('o', 'p', function (x) {
-         if (x.from.length !== 3) return error (r, 'Multiple elements not added initially to x.from.');
-         if (x.from [0].verb !== 'o') return error (r, 'verb on x.from not added correctly.');
-         if (x.from [1].foo !== 'bar') return error (r, 'Second element not added initially to x.from.');
-         if (x.from [2].bar !== 'foo') return error (r, 'Third element not added initially to x.from.');
-         counter++;
-      });
-
-      r.do ({from: [{foo: 'bar'}, {bar: 'foo'}]}, 'o', 'p');
-
-      if (counter !== 1) return error (r, 'r.do (x, ...) sequence #2 not executed fully.');
+      if (counter !== 1) return error (r, 'r.say (x, ...) sequence #1 not executed fully.');
 
    });
 
@@ -415,9 +379,9 @@ To run the tests:
          counter++;
       });
 
-      r.do ({from: undefined}, 'q', 'r');
+      r.say ({from: undefined}, 'q', 'r');
 
-      if (counter !== 1) return error (r, 'r.do (x, ...) sequence #3 not executed fully.');
+      if (counter !== 1) return error (r, 'r.say (x, ...) sequence #2 not executed fully.');
 
    });
 
@@ -428,7 +392,7 @@ To run the tests:
       r.listen ('s', 't', {id: 'pong'}, function () {});
 
       r.forget ('pong', function () {
-         if (r.routes.pong) Error = 'Route wasn\'t removed before forget fun was executed.';
+         if (r.listeners.pong) Error = 'listener wasn\'t removed before forget fun was executed.';
       });
 
       if (Error) return error (r, Error);
@@ -443,14 +407,14 @@ To run the tests:
          result.push (x.path);
       });
 
-      r.do ('s', 'a');
-      r.do ('s', 'b');
-      r.do ('s', 'ab');
-      r.do ('s', 'c');
-      r.do ('s', '*');
-      r.do ('s', ['*', 'b']);
+      r.say ('s', 'a');
+      r.say ('s', 'b');
+      r.say ('s', 'ab');
+      r.say ('s', 'c');
+      r.say ('s', '*');
+      r.say ('s', ['*', 'b']);
 
-      if (! teishi.eq (result, [['a'], ['b'], ['ab'], ['*'], ['*', 'b']])) return error (r, 'Regex matching error 1.');
+      if (! eq (result, [['a'], ['b'], ['ab'], ['*'], ['*', 'b']])) return error (r, 'Regex matching error 1.');
 
       result = [];
 
@@ -458,29 +422,29 @@ To run the tests:
          result.push (x.path);
       });
 
-      r.do ('a', 1);
-      r.do ('ba', 2);
-      r.do ('b', 3);
-      r.do ('*', 4);
+      r.say ('a', 1);
+      r.say ('ba', 2);
+      r.say ('b', 3);
+      r.say ('*', 4);
 
-      if (! teishi.eq (result, [[1], [2], [4]])) return error (r, 'Regex matching error 2.');
+      if (! eq (result, [[1], [2], [4]])) return error (r, 'Regex matching error 2.');
 
       var counter = 0;
 
       r.listen ('hello', /foo|bar/, function (x, c) {counter += c});
 
-      r.do ('hello', 'foo', 1);
-      r.do ('hello', 'bach', 2);
-      r.do ('hello', 'bar', 3);
+      r.say ('hello', 'foo', 1);
+      r.say ('hello', 'bach', 2);
+      r.say ('hello', 'bar', 3);
 
       if (counter !== 4) return error (r, 'Regex matching error 3.');
       counter = 0;
 
       r.listen (/foo|bar/, 'bach', function (x, c) {counter += c});
 
-      r.do ('foo', 'bach', 1);
-      r.do ('bar', 'bach', 2);
-      r.do ('bar', 'bar', 3);
+      r.say ('foo', 'bach', 1);
+      r.say ('bar', 'bach', 2);
+      r.say ('bar', 'bar', 3);
 
       if (counter !== 3) return error (r, 'Regex matching error 4.');
 
@@ -490,10 +454,12 @@ To run the tests:
 
       var r = R (), result = [];
 
-      var dmatch = function (route, ev) {
-         if (! r.compare (route.verb, ev.verb)) return;
-         return dale.stop (ev.path.slice (0, route.path.length), false, function (v, k) {
-            return r.compare (route.path [k], v);
+      var dmatch = function (listener, ev) {
+         if (! r.compare (listener.verb, ev.verb)) return;
+         if (listener.path.length > ev.path.length) return;
+         if (listener.path.length === 0) return true;
+         return dale.stop (listener.path, false, function (v2, k2) {
+            return r.compare (v2, ev.path [k2]);
          });
       }
 
@@ -501,14 +467,16 @@ To run the tests:
          result.push (x.path);
       });
 
-      r.do ('change', ['a', 'b', 'c']);
-      r.do ('change', ['a', 'b', 'c', 'd']);
-      r.do ('*', ['a', 'b', 'c', 'd']);
-      r.do ('change', ['a', 'b', 'd']);
-      r.do ('change', ['a']);
-      r.do ('change', ['a', 'b']);
+      r.say ('change', ['a', 'b', 'c']);
+      r.say ('change', ['a', 'b', 'c', 'd']);
+      r.say ('*', ['a', 'b', 'c', 'd']);
+      r.say ('change', ['a', 'b', 'd']);
+      r.say ('change', ['a']);
+      r.say ('change', ['a', 'b']);
+      r.say ('change', []);
+      r.say ('change', ['*']);
 
-      if (! teishi.eq (result, [['a', 'b', 'c'], ['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd'], ['a'], ['a', 'b']])) return error (r, 'Deep match error.');
+      if (! eq (result, [['a', 'b', 'c'], ['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd']])) return error (r, 'Deep match error.');
 
    });
 
@@ -517,25 +485,73 @@ To run the tests:
       var r = R ();
 
       r.listen ('a', [], function (x) {
-         r.do (x, 'b', []);
-         r.do (x, 'c', []);
+         r.say (x, 'b', []);
+         r.say (x, 'c', []);
       });
 
       r.listen ('b', [], function (x) {
-         r.do (x, 'd', []);
+         r.say (x, 'd', []);
       });
 
       r.listen ('c', [], function (x) {
-         if (type (x.from) !== 'array') return error (r, 'Invalid x.from array.');
-         delete x.from [0].date;
-         delete x.from [1].date;
-         if (! teishi.eq (x.from, [
-            {verb: 'c', path: []},
-            {verb: 'a', path: []}
-         ])) return error (r, 'x.from not copied when doing two calls from same rfun.');
+         var clog = dale.stopNot (r.log, undefined, function (v) {
+            if (v.id === x.from) return v;
+         });
+         var alog = dale.stopNot (r.log, undefined, function (v) {
+            if (v.id === clog.from) return v;
+         });
+         if (alog.verb !== 'a' || alog.path.length !== 0 || alog.from !== undefined) return error (r, 'Invalid from sequence when doing two calls from the same fun #1.');
       });
 
-      r.do ('a', []);
+      r.listen ('d', [], function (x) {
+         var dlog = dale.stopNot (r.log, undefined, function (v) {
+            if (v.id === x.from) return v;
+         });
+         var blog = dale.stopNot (r.log, undefined, function (v) {
+            if (v.id === dlog.from) return v;
+         });
+         if (blog.verb !== 'b') return error (r, 'Invalid from sequence when doing two calls from the same fun #2.');
+         var alog = dale.stopNot (r.log, undefined, function (v) {
+            if (v.id === blog.from) return v;
+         });
+         if (alog.verb !== 'a') return error (r, 'Invalid from sequence when doing two calls from the same fun #3.');
+      });
+
+      r.say ('a', []);
+   });
+
+   tests.push (function () {
+
+      var r = R (), counter = 0;
+
+      r.listen ('a', [], {id: 'a1'}, function (x) {
+         if (x.listener.id !== 'a1') return error (r, 'Invalid listener passed in context #1.');
+         counter++;
+      });
+      r.listen ('a', [], {id: 'a2'}, function (x) {
+         if (x.listener.id !== 'a2') return error (r, 'Invalid listener passed in context #2.');
+         setTimeout (x.cb, 2);
+         counter++;
+         return x.cb;
+      });
+      r.listen ('a', [], {id: 'a3'}, function (x) {
+         if (x.listener.id !== 'a3') return error (r, 'Invalid listener passed in context #3.');
+         counter++;
+         if (counter !== 3) return error (r, 'Listener test didn\'t execute all listeners.');
+      });
+
+      r.say ('a', []);
+
+   });
+
+   tests.push (function () {
+
+      var r = R ();
+
+      r.say ('a', 'b');
+      r.log = false;
+      r.say ('c', 'd');
+      if (r.log !== false) return error (r, 'Disabled r.log wasn\'t disabled.');
    });
 
    tests.push (function () {
@@ -554,12 +570,44 @@ To run the tests:
          if (counter !== 1) return error (r, 'async sequence wasn\'t executed in order.');
       });
 
-      r.do ('a', []);
+      r.say ('a', []);
 
       if (counter !== undefined) return error (r, 'Something very strange just happened; sync call executed after async!');
+
+      r = R ();
+      setTimeout (function () {
+         if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed.');
+         if (isNode) log ('Success', 'All tests were successful!');
+         else        alert ('All tests were successful!');
+      }, 500);
+      dale.go ([
+         function (x) {
+            setTimeout (function () {
+               r.store.value = 'one';
+               x.cb ();
+            }, 100);
+            return x.cb;
+         },
+         function (s) {
+            r.store.value += 'two';
+         },
+         function (x) {
+            setTimeout (function () {
+               r.store.value += 'three';
+               x.cb ();
+            }, 100);
+            return x.cb;
+         },
+         function () {
+            if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed in order: ' + r.store.value);
+         }
+      ], function (v, k) {
+         r.listen ('fire', '*', {priority: 2 - k}, v);
+      });
+      r.say ('fire', '*');
    });
 
-   dale.do (tests, function (v) {
+   dale.go (tests, function (v) {
       return v ();
    });
 

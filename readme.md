@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v3.8.2, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v4.0.0, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 ## Installation
 
@@ -28,22 +28,22 @@ recalc is written in Javascript. You can use it in the browser by sourcing the d
 Or you can use these links to the latest version - courtesy of [jsDelivr](https://jsdelivr.com).
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@ac36810de20ee18d5d5077bd2ccb94628d621e58/dale.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@e1d6313b4269c54d163ac2097d6713d9e9e3f213/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@2fd79b70bfcbf81b0d8957e2e17a8696a799b033/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@9fe30369a2acef87ed062131c8634d858b8f3143/dale.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@8442dc09f0518b93fc9b5fbdf5268d589b7d54fd/teishi.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@ /recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
 
-recalc is pure ES5 javascript and it should work in any version of node.js (tested in v0.8.0 and above). Browser compatibility is as follows:
+recalc should work in any version of node.js (tested in v0.8.0 and above). Browser compatibility has been tested in the following browsers:
 
-- Chrome 15 (released 2011/10/25) and above.
-- Firefox 22 (released 2013/02/23) and above.
-- Safari 5.1 (released 2011/07/20) and above.
-- Internet Explorer 9 (released 2011/03/14) and above.
-- Microsoft Edge 14 (released 2016/02/19) and above.
-- Opera 11.6 (released 2011/12/07) and above.
-- Yandex 14.12 (released 2014/12/11) and above.
+- Google Chrome 15 and above.
+- Mozilla Firefox 3 and above.
+- Safari 4 and above.
+- Internet Explorer 6 and above.
+- Microsoft Edge 14 and above.
+- Opera 10.6 and above.
+- Yandex 14.12 and above.
 
 The author wishes to thank [Browserstack](https://browserstack.com) for providing tools to test cross-browser compatibility.
 
@@ -89,21 +89,22 @@ var r = R ();
 
 `r` will be now our recalc object. The reason we use a [constructor](https://en.wikipedia.org/wiki/Constructor_(object-oriented_programming)) (instead of directly making `R` a recalc object) is that you may need to have multiple recalc objects at the same time; by executing the constructor more than once, you can get as many recalc objects as needed.
 
-Every recalc object has five elements that you need to understand in order to use the library. The first two are objects, the other three are functions:
+Every recalc object has six elements that you need to understand in order to use the library. The first three are objects, the other three are functions:
 
-- `r.routes`
+- `r.listeners`
 - `r.store`
-- `r.do`
+- `r.log`
+- `r.say`
 - `r.listen`
 - `r.forget`
 
-### `r.routes`
+### `r.listeners`
 
-The `routes` object is an object that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `routes`, and executes those that match the event being fired.
+The `listeners` object is an object that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `listeners`, and executes those that match the event being fired.
 
-We have chosen to name these elements as `routes` instead of `event handlers`, because of the evocative power and associations of the first term.
+We have chosen to name these elements as `listeners` instead of `event handlers`, because of the evocative power and associations of the first term.
 
-To add and remove routes, rather than directly modifying the array, I recommend you use `r.listen` and `r.forget` (we'll see these functions in a moment).
+To add and remove listeners, rather than directly modifying the array, I recommend you use `r.listen` and `r.forget` (we'll see these functions in a moment).
 
 ### `r.store`
 
@@ -121,11 +122,17 @@ var r = R ({some: 'important', data: true});
 
 By the way, that's the only argument you can pass to `R` (the constructor).
 
-An important thing to notice is that the routes are stored outside of the global store.
+An important thing to notice is that the listeners are stored outside of the global store.
 
-### `r.do`
+### `r.log`
 
-So far, `routes` and `store` are simple objects. Where's the action? Enter `r.do`. This function *fires* events.
+An array that contains all the events fired. While not essential for recalc's functioning, it is of great help for writing and debugging applications based on recalc. Each of the elements of this array are of the form `{t: TIMESTAMP, id: STRING, from: STRING|UNDEFINED, verb: ..., path: ..., args: UNDEFINED|ARRAY}`. We'll see more of `r.log` in the last section of the readme.
+
+If you want to turn off logging, you can set `r.log` to `false` at the top of your application.
+
+### `r.say`
+
+So far, `listeners`, `store` and `log` are simple objects. Where's the action? Enter `r.say`. This function *fires* events.
 
 Every event has two properties:
 
@@ -134,42 +141,42 @@ Every event has two properties:
 
 The combination of a verb plus a path seems versatile enough to serve as a general purpose way of building an event system. It works well for [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) and it will probably work well for us too.
 
-Both `verb` and `path` are required. If you don't pass them or pass invalid ones, `r.do` will return `false`. If its inputs are valid, the event will be fired and the function will return `true` (aren't side effects fun?).
+Both `verb` and `path` are required. If you don't pass them or pass invalid ones, `r.say` will return `false`. If its inputs are valid, the event will be fired and the function will return a string representing the id of the event just fired (aren't side effects fun?).
 
 For example, to fire an event with verb `'fire'` and a path `['hello', 1]`, you can write:
 
 ```javascript
-r.do ('fire', ['hello', 1]);
+r.say ('fire', ['hello', 1]);
 ```
 
-You can pass unlimited additional arguments when you fire an event. These arguments will be received by any routes that are listening to that particular event. For example, if you want to pass `'foo'` and `'bar'`, you can write:
+You can pass unlimited additional arguments when you fire an event. These arguments will be received by any listeners that are listening to that particular event. For example, if you want to pass `'foo'` and `'bar'`, you can write:
 
 ```javascript
-r.do ('fire', ['hello', 1], 'foo', 'bar');
+r.say ('fire', ['hello', 1], 'foo', 'bar');
 ```
 
 You can also use wildcards for both verbs and paths. For example:
 
 ```javascript
-r.do ('*', '*');
-r.do ('fire', '*');
-r.do ('fire', ['hello', '*']);
+r.say ('*', '*');
+r.say ('fire', '*');
+r.say ('fire', ['hello', '*']);
 ```
 
-Wildcards are further explored in the next section - to really understand them, we need to understand how routes are matched against a new event.
+Wildcards are further explored in the next section - to really understand them, we need to understand how listeners are matched against a new event.
 
 ### `r.listen`
 
-This function is the one in charge of placing routes into `r.routes`. Every time it is invoked with valid arguments, it will add a route. It takes the following arguments:
+This function is the one in charge of placing listeners into `r.listeners`. Every time it is invoked with valid arguments, it will add a listener. It takes the following arguments:
 
 - `verb`, which can be a string or a regex.
 - `path`, which can be a string, an integer, a regex, or an array containing those types of elements.
 - `options`, an optional object with additional options.
-- `rfun`, the function that will be executed when the route is matched. `rfun` is short for `route function`.
+- `lfun`, the function that will be executed when the listener is matched. `lfun` is short for `listener function`.
 
-As with `r.do`, if you pass invalid parameters, this function will return `false` and print an error message. Otherwise it will return the `id` of the route.
+As with `r.say`, if you pass invalid parameters, this function will return `false` and print an error message. Otherwise it will return the `id` of the listener.
 
-For example, to match the last event we showed on the last section, we could write a route like this:
+For example, to match the last event we showed on the last section, we could write a listener like this:
 
 ```javascript
 r.listen ('fire', ['hello', 1], function () {
@@ -177,39 +184,59 @@ r.listen ('fire', ['hello', 1], function () {
 });
 ```
 
-Remember that we said earlier that *the `routes` object is an object that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `routes`, and executes the route handlers of those routes that match the event being fired.* The most important question regarding routes is: when does a route match an event? And the answer is: when both the verb and path of the executed event match those of the route.
+Remember that we said earlier that *the `listeners` object is an object that contains all the event handlers. Whenever an event is fired, recalc iterates all the elements within `listeners`, and executes the listener handlers of those listeners that match the event being fired.* The most important question regarding listeners is: when does a listener match an event? And the answer is: when both the verb and path of the executed event match those of the listener.
 
-In the case of the verb, matching is straightforward: the verb of the path must be identical to that of the route.
+In the case of the verb, matching is straightforward: the verb of the path must be identical to that of the listener.
 
-In the case of the path, matching is somewhat more involved. Let's explain this with an example. Suppose you have the following route:
+In the case of the path, matching is somewhat more involved. Let's explain this with an example. Suppose you have the following listener:
 
 ```javascript
 r.listen ('fire', 'hello', function () {...});
 ```
 
-The route above will match the following three events:
+The listener above will match the following three events:
 
 ```javascript
-r.do ('fire', 'hello');
+r.say ('fire', 'hello');
 
-r.do ('fire', ['hello', 'there']);
+r.say ('fire', ['hello', 'there']);
 
-r.do ('fire', ['hello', 'there', 'handsome']);
+r.say ('fire', ['hello', 'there', 'handsome']);
 ```
 
 But it will *not* match the following events:
 
 ```javascript
-r.do ('fire', 'nothello');
+r.say ('fire', 'nothello');
 
-r.do ('fire', ['nothello', 'hello']);
+r.say ('fire', ['nothello', 'hello']);
 ```
 
-In general, what happens is that the elements of the route path are matched one-to-one with the elements of the event being fired. If the path of the event is longer than the path of the route, then the extra elements of the event path are discarded for comparison purposes. An interesting corollary is that if an event has n elements on a path, the route path has to have at least n elements in order to match it.
+In general, what happens is that the elements of the listener path are matched one-to-one with the elements of the event being fired. If the listener path or the event path have different lengths, we take the shortest of them and match each of its elements one-to-one. So, for example, if we have this listener:
 
-Why this strange behavior? I'm still heavily experimenting with this, but so far this approach tends to be quite useful for tracking changes in nested data structures. When I find a deeper, less pragmatic explanation, I will be eager to post it here.
+```javascript
+r.listen ('fire', ['hello', 'there'], function () {...});
+```
 
-If the path of the route is a regex (or given element of a path is a regex), said regex will be used to match against the corresponding member of the event's path. For example, this listener:
+The listener above will match the following three events:
+
+```javascript
+r.say ('fire', 'hello');
+
+r.say ('fire', ['hello', 'there']);
+
+r.say ('fire', ['hello', 'there', 'handsome']);
+```
+
+But not this event:
+
+```javascript
+r.say ('fire', ['hello', 'handsome']);
+```
+
+Historical note: in previous versions (< v4), the listener path was the "measure" of comparison, and the event path was compared against it. This had the consequence that a listener with a path longer than an event path would not be triggered, even if all its elements matched those of the path. Practical experience shows that symmetry between the listener path and the event path is the most useful and intuitive behavior.
+
+If the path of the listener is a regex (or given element of a path is a regex), said regex will be used to match against the corresponding member of the event's path. For example, this listener:
 
 ```javascript
 r.listen ('hello', /foo|bar/, function () {...});
@@ -218,12 +245,12 @@ r.listen ('hello', /foo|bar/, function () {...});
 Will be fired by the first and third events below, but not the second.
 
 ```javascript
-r.do ('hello', 'foo');
-r.do ('hello', 'bach');
-r.do ('hello', 'bar');
+r.say ('hello', 'foo');
+r.say ('hello', 'bach');
+r.say ('hello', 'bar');
 ```
 
-Route verbs can also be regexes. For example, this route:
+listener verbs can also be regexes. For example, this listener:
 
 ```javascript
 r.listen (/foo|bar/, 'bach', function () {...});
@@ -232,43 +259,43 @@ r.listen (/foo|bar/, 'bach', function () {...});
 Will match the following two events.
 
 ```javascript
-r.do ('foo', 'bach');
-r.do ('bar', 'bach');
+r.say ('foo', 'bach');
+r.say ('bar', 'bach');
 ```
 
-Let's see now which `options` can be passed to a route. `options` All of them are optional:
+Let's see now which `options` can be passed to a listener. `options` All of them are optional:
 
-- `id`: a string or integer that will uniquely identify a route. If you don't pass one, `r.listen` will generate one for you. This `id` will be used as the key where the route is bound - for example, if `options.id === 'hello'`, the route will be stored at `r.routes.hello`. If you pass an `id` that's already being used by another route, an error will be printed and `r.listen` will return `false`.
-- `parent`: a string or integer that will represent the `id` of this route. By default this is `undefined`. The purpose of this will be explained below when we explain `r.forget`.
-- `burn`: a boolean value. By default this is `undefined`. When you set it to `true`, the route will auto-destroy after being matched/executed a single time. This allows you to create one-off events that later disappear, hence allowing you to keep clean the event space.
-- `priority`: an integer value. By default this is `undefined` (which will be considered as a priority of `0`). The higher the value, the sooner this route will be executed in case of a match. You can also use negative values.
-- `match`: a function that is used to determine whether the route matches a given event. This function works as a bypass to the standard matching logic defined in `r.match`. This function receives the `route` as the first argument and an object of the form `{verb: ..., path: ...}` with the `verb` and `path` corresponding to the given event. This function must return `true` to indicate that the given event matches the route.
+- `id`: a string or integer that will uniquely identify a listener. If you don't pass one, `r.listen` will generate one for you. This `id` will be used as the key where the listener is bound - for example, if `options.id === 'hello'`, the listener will be stored at `r.listeners.hello`. If you pass an `id` that's already being used by another listener, an error will be printed and `r.listen` will return `false`.
+- `parent`: a string or integer that will represent the `id` of this listener. By default this is `undefined`. The purpose of this will be explained below when we explain `r.forget`.
+- `burn`: a boolean value. By default this is `undefined`. When you set it to `true`, the listener will auto-destroy after being matched/executed a single time. This allows you to create one-off events that later disappear, hence allowing you to keep clean the event space.
+- `match`: a function that is used to determine whether the listener matches a given event. This function works as a bypass to the standard matching logic defined in `r.match`. This function receives the `listener` as the first argument and an object of the form `{verb: ..., path: ...}` with the `verb` and `path` corresponding to the given event as a second argument. This function must return `true` to indicate that the given event matches the listener; otherwise, the listener won't be called for that particular event.
+- `priority`: an integer value. By default this is `undefined` (which will be considered as a priority of `0`). The higher the value, the sooner this listener will be executed in case of a match. You can also use negative values.
 
-This last property reminds us that it is perfectly normal to have more than one route matching a certain event. `priority` simply lets us make certain routes to be executed ahead of others. Again, I have pragmatic reasons for this, but still no carefully considered rationale. Routes of equal priority are run in arbitrary order - to ensure a specific sequence, you need to use the `priority` parameter.
+This last property reminds us that it is perfectly normal to have more than one listener matching a certain event. `priority` simply lets us make certain listeners to be executed ahead of others. This allows for sophisticated (yet necessary) constructs like view redrawing, where some listeners have to be fired ahead of others to prevent unnecessary operations. **Listeners of equal priority are run in arbitrary order** - to ensure a specific sequence, you need to use the `priority` parameter.
 
-It is also perfectly possible to have *zero* routes matching a certain event.
+It is also perfectly possible to have *zero* listeners matching a certain event.
 
 Here's an example of how to invoke `r.listen` with options.
 
 ```javascript
-r.listen ('fire', 'test', {id: 'matchEverything', parent: 'someOtherRouteId', priority: 3, burn: false}, function () {...});
+r.listen ('fire', 'test', {id: 'matchEverything', parent: 'someOtherListenerId', priority: 3, burn: false}, function () {...});
 ```
 
 You can also place the `verb` and the `path` inside the options object. In this case, `options` becomes the first argument passed to the function, and is now mandatory (since `r.listen` must receive a `verb` and a `path` always).
 
 ```javascript
-r.listen ({verb: 'fire', path: 'test', id: 'matchEverything', parent: 'someOtherRouteId', priority: 3, burn: false}, function () {...});
+r.listen ({verb: 'fire', path: 'test', id: 'matchEverything', parent: 'someOtherListenerId', priority: 3, burn: false}, function () {...});
 ```
 
 ### `r.listen` advanced matching: wildcards & empty paths
 
-Within event and route paths, you can also use wildcards. For example, this route will be executed by any event that has a path that's at least one element long:
+Within event and listener paths, you can also use wildcards. For example, this listener will be executed by any event that has a path that's at least one element long:
 
 ```javascript
 r.listen ('*', '*', function () {...});
 ```
 
-You can also use wildcards for single elements in an array path. For example, this route:
+You can also use wildcards for single elements in an array path. For example, this listener:
 
 ```javascript
 r.listen ('fire', ['hello', '*', 'handsome'], function () {...});
@@ -277,14 +304,14 @@ r.listen ('fire', ['hello', '*', 'handsome'], function () {...});
 Will be matched by the following events:
 
 ```javascript
-r.do ('fire', ['hello', 'there', 'handsome']);
+r.say ('fire', ['hello', 'there', 'handsome']);
 
-r.do ('fire', ['hello', 'out there', 'handsome']);
+r.say ('fire', ['hello', 'out there', 'handsome']);
 
-r.do ('*', ['hello', '*']);
+r.say ('*', ['hello', '*']);
 ```
 
-A path can also be an empty array. Conceptually, an empty path represents the [root path](https://en.wikipedia.org/wiki/Tree_(data_structure)#Terminology). In practical terms, if the path of a route is an empty array, that route will match any event that has a matching verb, no matter what their paths are. For example, this route:
+A path can also be an empty array. Conceptually, an empty path represents the [root path](https://en.wikipedia.org/wiki/Tree_(data_structure)#Terminology). In practical terms, if the path of a listener is an empty array, that listener will match any event that has a matching verb, no matter what their paths are. For example, this listener:
 
 ```
 r.listen ('fire', []);
@@ -293,25 +320,25 @@ r.listen ('fire', []);
 will match the following events:
 
 ```javascript
-r.do ('fire', 'hello');
+r.say ('fire', 'hello');
 
-r.do ('fire', '*');
+r.say ('fire', '*');
 
-r.do ('fire', ['another', 'path']);
+r.say ('fire', ['another', 'path']);
 
-r.do ('fire', []);
+r.say ('fire', []);
 ```
 
-And this route will match any event:
+And this listener will match any event:
 
 ```javascript
 r.listen ('*', []);
 ```
 
-If the path of an event is an empty array, the only routes that can possibly match it have 1) an empty array as path; and 2) a matching verb. For example, the only two routes that can match this event:
+If the path of an event is an empty array, the only listeners that can possibly match it have 1) an empty array as path; and 2) a matching verb. For example, the only two listeners that can match this event:
 
 ```javascript
-r.do ('foo', []);
+r.say ('foo', []);
 ```
 
 are:
@@ -323,30 +350,30 @@ r.listen ('*', []);
 
 ### `r.forget`
 
-This function allows us to remove routes. Its first argument is `id`, which should be a string or integer. This `id` is the one of the route we are removing.
+This function allows us to remove listeners. Its first argument is `id`, which should be a string or integer. This `id` is the one of the listener we are removing.
 
-If you call `r.forget ('foo')`, this will also remove all the routes that have `'foo'` as its parent, plus all their children. In effect, the `parent` property of the route allows for tree-like deletion of routes.
+If you call `r.forget ('foo')`, this will also remove all the listeners that have `'foo'` as its parent, plus all their children. In effect, the `parent` property of the listener allows for tree-like deletion of listeners.
 
-If you call `r.forget ('foo')` and there's no route named `foo`, this function will return `false` and print an error.
+If you call `r.forget ('foo')` and there's no listener named `foo`, this function will return `false` and print an error.
 
-If you pass a function as the second argument to `r.forget`, this function will be executed for every route deleted (that is, the route with the `id` specified, plus all its children). This `onforget` function will receive as first argument the route that is being deleted.
+If you pass a function as the second argument to `r.forget`, this function will be executed for every listener deleted (that is, the listener with the `id` specified, plus all its children). This `onforget` function will receive as first argument the listener that is being deleted.
 
-For example, `r.forget ('foo', function (r) {console.log (r.id)})` will print `foo`, as well as the ids of any routes that have `foo` as parent.
+For example, `r.forget ('foo', function (r) {console.log (r.id)})` will print `foo`, as well as the ids of any listeners that have `foo` as parent.
 
-If you pass a function as the second argument to `r.forget`, the route being deleted will be removed from `r.routes` before this function is executed.
+If you pass a function as the second argument to `r.forget`, the listener being deleted will be removed from `r.listeners` before this function is executed.
 
-### Route functions
+### listener functions
 
-I lied - you also need to understand how route functions work in order to use recalc. But this is the very last thing.
+I lied - you also need to understand how listener functions work in order to use recalc. But this is the very last thing.
 
-A route function always receives a `context` as its first argument. The context is an object with five or six elements:
+A listener function always receives a `context` as its first argument. The context is an object with six elements:
 
-- `verb`, the verb of the event that matched the route.
-- `path`, the path of the event that matched the route.
-- `args`, an array with extra arguments passed to the event. If no extra arguments were passed, this element won't be present.
-- `cb`, a callback function which you only need to use if your route function is asynchronous.
-- `route`, the matched route.
-- `from`, an array that contains a list of all the events that caused the current event to fire.
+- `verb`, the verb of the event that matched the listener.
+- `path`, the path of the event that matched the listener.
+- `args`, an array with extra arguments passed to the event. If no extra arguments were passed, this element will be undefined.
+- `from`, the id of the event that triggered this listener (which is the same value returned by the corresponding `r.say` invocation).
+- `cb`, a callback function which you only need to use if your listener function is asynchronous.
+- `listener`, the matched listener.
 
 As a convention, I name `context` as `x`. Let's see an example:
 
@@ -359,29 +386,29 @@ r.listen ('fire', '*', function (x, extraArg1, extraArg2) {
 If we execute the following event:
 
 ```javascript
-r.do ('fire', 'hello');
+r.say ('fire', 'hello');
 ```
 
-Then the route above will receive an `x` of the form `{verb: 'fire', path: ['hello'], cb: ..., route: {...}, from: [...]}` and both `extraArg1` and `extraArg2` will be `undefined`.
+Then the listener above will receive an `x` of the form `{verb: 'fire', path: ['hello'], cb: ..., listener: {...}, from: ...}` and both `extraArg1` and `extraArg2` will be `undefined`.
 
 To set `extraArg1` and `extraArg2` to `'foo'` and `'bar'` respectively, you could trigger the following event:
 
 ```javascript
-r.do ('fire', 'hello', 'foo', 'bar');
+r.say ('fire', 'hello', 'foo', 'bar');
 ```
 
-This means that any parameters passed to `r.do` besides `verb` and `path` will be passed to the route function.
+This means that any parameters passed to `r.say` besides `verb` and `path` will be passed to the listener function.
 
-In this case, the `x` will be `{verb: 'fire', path: ['hello'], args: ['foo', 'bar'], cb: ..., route: {...}, from: [...]}`.
+In this case, the `x` will be `{verb: 'fire', path: ['hello'], args: ['foo', 'bar'], cb: ..., listener: {...}, from: ...}`.
 
-Having covered the arguments, we now have to see what you to have in mind when writing route functions. There's two issues: control and data.
+Having covered the arguments, we now have to see what you to have in mind when writing listener functions. There's two issues: control and data.
 
-Regarding control, if your route function is synchronous, there's nothing to worry about: once your function finishes executing, the route functions of any other routes will be executed, one at a time. However, if your function is asynchronous, you need to signal this to recalc, so that the order in which routes are executed will be preserved.
+Regarding control, if your listener function is synchronous, there's nothing to worry about: once your function finishes executing, the listener functions of any other listeners will be executed, one at a time. However, if your function is asynchronous, you need to signal this to recalc, so that the order in which listeners are executed will be preserved.
 
-Let's say that you have a route function that executes an asynchronous operation. The proper way to write it is like this:
+Let's say that you have a listener function that executes an asynchronous operation. The proper way to write it is like this:
 
 ```
-r.do ('fire', 'hello', function (x) {
+r.say ('fire', 'hello', function (x) {
    asyncOperation ('foo', 'bar', function () {
       x.cb ();
    });
@@ -389,57 +416,89 @@ r.do ('fire', 'hello', function (x) {
 });
 ```
 
-The above async route function does two things that every async route function should do:
+The above async listener function does two things that every async listener function should do:
 
-1. Call `x.cb` from within the asynchronous callback, to resume execution of further matching routes.
-2. Return `x.cb`, to notify recalc that this is an async function and it should not keep on executing other routes synchronously.
+1. Call `x.cb` from within the asynchronous callback, to resume execution of further matching listeners.
+2. Return `x.cb`, to notify recalc that this is an async function and it should not keep on executing other listeners synchronously.
 
-Interestingly enough, if you don't want to resume the execution of further routes, you can skip the call to `x.cb` from within the asynchronous callback. This may be handy in case of an error.
+Interestingly enough, if you don't want to resume the execution of further listeners, you can skip the call to `x.cb` from within the asynchronous callback. This may be handy in case of an error.
 
-Note that if two routes are matched for a single call, and the route with the highest priority is async, the second route will be only called after the first route finished its async operation.
+Note that if two listeners are matched for a single call, and the listener with the highest priority is async, the second listener will be only called after the first listener finished its async operation.
 
-Regarding the issue of calling events from within a route (something which is both possible and encouraged), it can be done freely as long as the events trigger routes with synchronous route functions. If, however, you trigger an event that triggers one or more asynchronous route functions, you should do that as the *last* thing within the body of your route function, in order to preserve the sequence. Not only that, you should also return `x.cb` in order to signal that this operation was async, and hence your route function is async as well.
+Regarding the issue of calling events from within a listener (something which is both possible and necessary), it can be done freely as long as the events trigger listeners with synchronous listener functions. If, however, you trigger an event that triggers one or more asynchronous listener functions, you should do that as the *last* thing within the body of your listener function, in order to preserve the sequence. Not only that, you should also return `x.cb` in order to signal that this operation was async, and hence your listener function is async as well.
 
-Regarding data: unless your route function returns `x.cb` (which signals that it is async), any other return values will be *discarded*. If you want to pass data, you should place it in `r.store`, through a function that triggers an event.
+Regarding data: unless your listener function returns `x.cb` (which signals that it is async), any other return values will be *discarded*. If you want to pass data, you should place it in `r.store`, through a function that triggers an event.
 
-Because recalc wants to retain generality, we haven't bundled any functions for doing updates on `r.store` using the event system. This is done on [gotoв](https://github.com/fpereiro/gotoB), which is built on top of recalc. However, consider the following example, where `r.store` is an array:
+Because recalc wants to retain generality, we haven't bundled any functions for.saying updates on `r.store` using the event system. This is done on [gotoв](https://github.com/fpereiro/gotoB), which is built on top of recalc. However, consider the following example, where `r.store` is an array:
 
 ```javascript
 r.listen ('setElement', '*', function (x, value) {
    r.store [x.path] = element;
 });
 
-r.do ('setElement', 2, 'something');
+r.say ('setElement', 2, 'something');
 ```
 
 The two functions above will set the third element of `r.store` to the value `'something'`. This function can be generalized to arrays and objects, and also to support deletions.
 
-One final thing we left unmentioned: `x.from` is an object that helps you debug nested event calls. To use it, you can pass `x` as the first argument to `r.do`, whenever you are calling it from within a `rfun`: for example, instead of writing `r.do ('verb', 'path')` you would instead write `r.do (x, 'verb', 'path')`. If you do so, you will find that `x.from` contains an array of objects, each of them of the shape: `{verb: ..., path: ..., args: ..., date: ...}`. Each of these objects describe the verb, path, arguments and date for each of the events fired in the chain. The first object corresponds to the event that triggered the particular rfun you are in, while subsequent items refer to the event that triggered the rfun that in turn triggered another event that triggered the particular rfun you are in.
+### Tracking event chains
 
-Notice that each of the objects in `x.from` looks a lot like `x`: `verb` and `path` are the same, `args` is only present if `args` were passed to that particular event; the only differences are that `date` is added, while `route` and `cb` are removed (the former is removed because it has nothing to do with an event, only with the route; while the latter is only useful programatically, not for logging purposes).
+Whenever an event is fired with `r.say`, an entry will be added to `r.log` with the following fields: `{t: TIMESTAMP, id: STRING, from: STRING|UNDEFINED, verb: ..., path: ..., args: UNDEFINED|ARRAY}`. `id` corresponds to the value returned by a successful invocation to `r.say`.
 
-A final note: you can invoke `r.do` from outside a `rfun` passing a valid context. For a context to be considered valid, its `from` key must be either undefined, an object or an array of objects (what you put inside the objects is up to you. If you pass an array of objects, that's already considered `x.from`. If you pass a single object, it will be wrapped into an array and considered `x.from`. For example, if you invoke `r.do ({from: {ev: 'onclick', id: 'foo'}, 'a', 'b')`, the `rfuns` triggered by that event will receive a `x.from` array with two elements: the first one will be `{verb: 'a', path: ['b'], date: ...}` and the second one will be `{ev: 'onclick', id: 'foo'}`.
+If you are inside a `lfun` and you want to trigger further events with `r.say`, **you can pass the context (`x`) argument as the first argument to `r.say`**. This will allow you to create trackable chain of events.
+
+This is quite hard to grasp conceptually, so let's see an example:
+
+```javascript
+r.listen ('hello', 'there', function (x) {
+   r.say (x, 'goodbye', 'goodbye');
+});
+
+r.say ('hello', 'there');
+```
+
+We first define a `lfun`. Whenever it gets matched, we call `r.say` and we pass the context.
+
+After that, we trigger an event. Let's say this event will return a value of `id1` (just for exemplary purposes; actual ids generated by recalc are longer). When the `lfun` we defined above is matched, `x.from` will have a value of `id1` (which is the id of the event that matched that `lfun`).
+
+The invocation to `r.say` from within the `lfun` will return another id (let's call it `id2`). The interesting part will happen in `r.log`, which will look like this:
+
+```
+[
+   {id: 'id1', from: undefined, verb: 'hello', path: ['there'],     t: ..., args: undefined},
+   {id: 'id2', from: 'id1',     verb: 'goodbye', path: ['goodbye'], t: ..., args: undefined},
+]
+```
+
+As you can see, the log for `id2` will mark that this event came *from* `id1`.
+
+Any `lfuns` matched by `id2` will receive `id2` as its `x.from`, and if you pass the context to further event invocations, you'll have longer chains of dependencies. In this way, you have the raw data to track complex (and often asynchronous) events, which can be useful in many applications.
+
+Two more things to have in mind: if you don't pass `x` to an invocation to `r.say` within a `lfun`, recalc has no way of knowing where that event came from and then the chain will be broken. The second one is that initial invocations of `r.say` (that happen on their own, without being the result of previous events) will naturally receive no context, since there's no context yet for them.
+
+Finally, if you want to turn off logging, you can always do so by setting `r.log` to `false`.
 
 ## Implementation functions
 
-There's six other functions that support the usage functions. If you override them, you can change the innards of recalc. These are:
+There's seven other functions that support the usage functions. If you override them, you can change the innards of recalc. These are:
 
 - `r.isPath`, a helper function to determine whether something is a valid `path`.
-- `r.random`, a helper function for generating random ids for new routes.
-- `r.compare`, a helper function for comparing a route item (either the verb or one of the elements of the path) with a corresponding event item; this function is used by `r.match`.
-- `r.mill`, the function that gets executed by `r.do` when an event is fired - it represents the core engine of the library.
-- `r.match`, the function in charge of matching an event with the relevant routes.
-- `r.sort`, the function that sorts the order of the matching routes that will be executed in response to a certain event.
+- `r.random`, a helper function for generating random ids for new listeners.
+- `r.compare`, a helper function for comparing a listener item (either the verb or one of the elements of the path) with a corresponding event item; this function is used by `r.match`.
+- `r.logpush`, a helper function that pushes a log entry to `r.log` as long as `r.log` is not `false`.
+- `r.mill`, the function that gets executed by `r.say` when an event is fired - it represents the core engine of the library.
+- `r.match`, the function in charge of matching an event with the relevant listeners.
+- `r.sort`, the function that sorts the order of the matching listeners that will be executed in response to a certain event.
 
 ## Source code
 
-The complete source code is contained in `recalc.js`. It is about 200 lines long.
+The complete source code is contained in `recalc.js`. It is about 190 lines long.
 
 Below is the annotated source.
 
 ```javascript
 /*
-recalc - v3.8.2
+recalc - v4.0.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -503,22 +562,28 @@ We create `r`, a local object which will be the sole thing returned by the const
       var r = {};
 ```
 
-We set `r.routes` to be an empty object; as for `r.store`, we set it to the `store` passed to `main`, else we initialize it to an empty object. Notice that the `routes` are going to be stored outside the `store`.
+We set `r.listeners` to be an empty object; as for `r.store`, we set it to the `store` passed to `main`, else we initialize it to an empty object. Notice that the `listeners` are going to be stored outside the `store`.
 
 ```javascript
-      r.routes  = {};
-      r.store   = store || {};
+      r.listeners = {};
+      r.store     = store || {};
+```
+
+We set `r.log` to an empty array.
+
+```javascript
+      r.log       = [];
 ```
 
 ### The three usage functions
 
-We now define the first of the three usage functions, `r.do`, which serves the purpose of firing an event.
+We now define the first of the three usage functions, `r.say`, which serves the purpose of firing an event.
 
 ```javascript
-      r.do = function () {
+      r.say = function () {
 ```
 
-`r.do` is a variadic function (this means it takes a variable number of arguments). While it must always receive a `verb` and a `path`, it can optionally receive a `context` (named `x`, here and henceforth). Since the `verb` cannot be an object, we consider `x` to be present if the first argument is an object. We then consider the following arguments to be the `verb` and the `path`.
+`r.say` is a variadic function (this means it takes a variable number of arguments). While it must always receive a `verb` and a `path`, it can optionally receive a `context` (named `x`, here and henceforth). Since the `verb` cannot be an object, we consider `x` to be present if the first argument is an object. We then consider the following arguments to be the `verb` and the `path`.
 
 ```javascript
          var x = type (arguments [0]) === 'object' ? arguments [0] : undefined;
@@ -526,48 +591,39 @@ We now define the first of the three usage functions, `r.do`, which serves the p
          var path = arguments [x ? 2 : 1];
 ```
 
-A valid path can only be an array. However, it is quite convenient to write paths with a single element (`['foo']`) as the element itself (`'foo'`); for this reason, `r.do` automatically wraps any simple path (ie: neither an array nor an object) into an array, using `teishi.simple` to detect whether this is the case.
+A valid path can only be an array. However, it is quite convenient to write paths with a single element (`['foo']`) as the element itself (`'foo'`); for this reason, `r.say` automatically wraps any simple path (ie: neither an array nor an object) into an array, using `teishi.simple` to detect whether this is the case.
 
 ```javascript
          if (teishi.simple (path)) path = [path];
 ```
 
-We create a local variable `args` that will consist of an array with the following elements: 1) a `context` (either `x`, if present, or a brand new empty object otherwise); 2) `verb`; 3) `path`; 4) any further arguments passed to `r.do`.
+We now validate the arguments passed to `r.say`.
 
 ```javascript
-         var args = [x || {}, verb, path].concat ([].slice.call (arguments, x ? 3 : 2));
+         if (teishi.stop ('r.say', [
 ```
 
-We now validate the arguments passed to `r.do`.
+If `x` is not `undefined`, it must be an object (remember that when detecting whether `x` was passed, we only considered that to happen only if the first argument was an object).
 
 ```javascript
-         if (teishi.stop ('r.do', [
+            ['context', x, ['object', 'undefined'], 'oneOf'],
 ```
 
-If `x` is not `undefined`, it must be an object (remember that when detecting whether `x` was passed, we only considered that to happen only if the first argument was an object). We now check that `x.from` should be either an array, an object, or `undefined`.
+If `x` is present, we check that `x.from` should be either a string or undefined.
 
 ```javascript
             [x !== undefined, [function () {
-               return [
-                  ['x.from', x.from, ['array', 'object', 'undefined'], 'oneOf'],
-
+               return ['x.from', x.from, ['string', 'undefined'], 'oneOf'];
+            }]],
 ```
 
-If `x.from` is an array, we check that each of its contents is an object. Note that this also allows `x.from` to be an empty array. We do no further validation of the objects within `x.from`. This concludes our validation of `x`.
-
-```javascript
-                  [type (x.from) === 'array', [function () {
-                     return ['x.from', x.from, 'object', 'each'];
-                  }]],
-               ];
-            }]]
-```
+This concludes our validation of `x`.
 
 We check that `verb` is a string; as for `path`, we invoke a helper function `r.isPath` that will return `true` or `false` depending on whether `path` is a valid path. While we'll see the implementation of `r.isPath` later, this function makes sure that `path` is an array composed of strings and integers.
 
 ```javascript
             ['verb', verb, 'string'],
-            r.isPath (path, 'r.do')
+            r.isPath (path, 'r.say')
 ```
 
 If any part of the validation fails, we return `false`.
@@ -576,29 +632,62 @@ If any part of the validation fails, we return `false`.
          ])) return false;
 ```
 
-We call an internal function, `r.mill`, passing it `args`. For doing this, we use `apply`, which allows us to pass to the function an array with all the arguments.
+We define two local variables. First, `oargs`, which is a mere reference to `arguments`. Second, we create `args`, which will be either an array with all the "extra" arguments received by `r.say` (that is, arguments beyond `x`, `verb` and `path`). If no extra arguments are passed, this variable will be undefined.
+
+`args` is done by iterating the `arguments` pseudo-array and using `oargs` as a reference to it.
 
 ```javascript
-         r.mill.apply (null, args);
+         var oargs = arguments;
+         var args  = arguments.length === (x ? 3 : 2) ? undefined : dale.go (dale.times (arguments.length - (x ? 3 : 2), x ? 3 : 2), function (k) {
+            return oargs [k];
+         });
 ```
 
-We return `true` to indicate that the event has been fired successfully. This concludes the function.
+Notice that if `x` was passed, extra arguments will be those starting with index 3 (fourth element and above), while if `x` wasn't passed, extra arguments will be those starting with index 2 (third element and above).
+
+We define a local variable `from` and set it to `x.from`, only if `x` is present. If present, this will represent the id of a previous event that is triggering the current event.
 
 ```javascript
-         return true;
+         var from = x ? x.from : undefined;
+```
+
+We now set `x` to a brand new object with the following fields: `from`, with a freshly generated id prepended by an `E`; the `verb` and `path` received as arguments; and `args`, the array (or undefined) variable we just created above.
+
+Notice that if `x` was passed to this invocation of `r.say`, we have already overwritten it and only kept a reference to the original `x.from` - no other field of the original context is used.
+
+```javascript
+         x = {from: 'E' + r.random (), verb: verb, path: path, args: args};
+```
+
+We invoke a helper function, `r.logpush`, to add a log entry to `r.log`. We will cover this function later. This function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the current event being fired, the `verb` and `path` received, and the `args` variable containing further arguments.
+
+```javascript
+         r.logpush (from, x.from, verb, path, args);
+```
+
+We call an internal function, `r.mill`, passing it `x` (which already contains `verb` and `path`) plus `args`. For doing this, we use `apply`, which allows us to pass to the function an array with all the arguments.
+
+```javascript
+         r.mill.apply (null, [x].concat (args));
+```
+
+We return `x.from`, which contains an id to identify the current event invocation. This concludes the function.
+
+```javascript
+         return x.from;
       }
 ```
 
-We now define `r.listen`, a function for creating `routes`, which are functions that are executed when a matching event is fired.
+We now define `r.listen`, a function for creating `listeners`, which are functions that are executed when a matching event is fired.
 
 ```javascript
       r.listen = function () {
 ```
 
-We set two local variables: `options` (as of yet uninitialized) and `rfun` (set to the last argument passed to `r.listen`. `options` will be an object with options passed to the route, while `rfun` will be the route function.
+We set two local variables: `options` (as of yet uninitialized) and `lfun` (set to the last argument passed to `r.listen`. `options` will be an object with options passed to the listener, while `lfun` will be the listener function.
 
 ```javascript
-         var options, rfun = arguments [arguments.length - 1];
+         var options, lfun = arguments [arguments.length - 1];
 ```
 
 `r.listen` is a variadic function that must receive a minimum of two arguments. If it receives less than two arguments, we will print an error and return `false`.
@@ -607,13 +696,13 @@ We set two local variables: `options` (as of yet uninitialized) and `rfun` (set 
          if (arguments.length < 2) return log ('r.listen', 'Too few arguments passed to r.listen');
 ```
 
-If we receive two arguments only, we'll consider `options` to be the first one. Since we already set `rfun` to the last argument received, there's nothing else to do in this case.
+If we receive two arguments only, we'll consider `options` to be the first one. Since we already set `lfun` to the last argument received, there's nothing else to do in this case.
 
 ```javascript
          if (arguments.length === 2) options = arguments [0];
 ```
 
-If there's more than two arguments, the function expects `verb` and `path` to be the first two arguments. If there's four arguments in total, the function expects `options` to be the third argument. In either case, `rfun` will be considered to be the last argument. Notice that we place both the `verb` and `path` inside `options`.
+If there's more than two arguments, the function expects `verb` and `path` to be the first two arguments. If there's four arguments in total, the function expects `options` to be the third argument. In either case, `lfun` will be considered to be the last argument. Notice that we place both the `verb` and `path` inside `options`.
 
 ```javascript
          else {
@@ -623,7 +712,7 @@ If there's more than two arguments, the function expects `verb` and `path` to be
          }
 ```
 
-In the same way as `r.do`, `r.listen` automatically wraps any simple path (ie: neither an array nor an object) into an array, using `teishi.simple` to detect whether this is the case.
+In the same way as `r.say`, `r.listen` automatically wraps any simple path (ie: neither an array nor an object) into an array, using `teishi.simple` to detect whether this is the case.
 
 ```javascript
          if (teishi.simple (options.path)) options.path = [options.path];
@@ -676,10 +765,10 @@ If defined, `options.match` must be a function.
             ]},
 ```
 
-`rfun` must be a function.
+`lfun` must be a function.
 
 ```javascript
-            ['route function', rfun, 'function']
+            ['listener function', lfun, 'function']
 ```
 
 If any part of the validation fails, we return `false`.
@@ -689,11 +778,11 @@ If any part of the validation fails, we return `false`.
 
 ```
 
-If `options.id` is present, we check that there's no route within `r.routes` with that id. If it does, we print an error and return `false`.
+If `options.id` is present, we check that there's no listener within `r.listeners` with that id. If it does, we print an error and return `false`.
 
 ```javascript
          if (options.id) {
-            if (r.routes [options.id]) return log ('r.listen', 'A route with id', options.id, 'already exists.');
+            if (r.listeners [options.id]) return log ('r.listen', 'A listener with id', options.id, 'already exists.');
          }
 ```
 
@@ -703,28 +792,28 @@ If `options.id` is not present, we invoke `r.random` to generate one.
          else options.id = r.random ();
 ```
 
-We place `rfun` within the `options` object.
+We place `lfun` within the `options` object.
 
 ```javascript
-         options.rfun = rfun;
+         options.lfun = lfun;
 ```
 
-By this point, `options` contains all the information relevant for the route - it is effectively the route object. We now set it within `r.routes`.
+By this point, `options` contains all the information relevant for the listener - it is effectively the listener object. We now set it within `r.listeners`.
 
 ```javascript
-         r.routes [options.id] = options;
+         r.listeners [options.id] = options;
 ```
 
-We return the `id` of the route and close the function.
+We return the `id` of the listener and close the function.
 
 ```javascript
          return options.id;
       }
 ```
 
-We now define the third and last usage function of recalc, `r.forget`, which has the purpose of removing routes from `r.routes`.
+We now define the third and last usage function of recalc, `r.forget`, which has the purpose of removing listeners from `r.listeners`.
 
-This function takes two arguments, `id` and `fun`. The first one is the `id` of the route that must be removed. `fun` is an optional function that will be executed when the route is deleted.
+This function takes two arguments, `id` and `fun`. The first one is the `id` of the listener that must be removed. `fun` is an optional function that will be executed when the listener is deleted.
 
 ```javascript
       r.forget = function (id, fun) {
@@ -736,29 +825,29 @@ If present, `fun` must be a function; otherwise we print an error and return `fa
          if (fun !== undefined && type (fun) !== 'function') return log ('Second argument to r.forget must be a function or undefined.');
 ```
 
-If the route does not exist, we print an error and return `false`.
+If the listener does not exist, we print an error and return `false`.
 
 ```javascript
-         if (! r.routes [id]) return log ('Route', id, 'does not exist.');
+         if (! r.listeners [id]) return log ('listener', id, 'does not exist.');
 ```
 
-We store the route in a local variable `route`. We then remove it from `r.routes`.
+We store the listener in a local variable `listener`. We then remove it from `r.listeners`.
 
 ```javascript
-         var route = r.routes [id];
-         delete r.routes [id];
+         var listener = r.listeners [id];
+         delete r.listeners [id];
 ```
 
-If `fun` is present, we invoke it passing `route` as its first argument. This is why we stored `route` locally, so that we could pass it to this function *after* the route was removed from `r.routes`.
+If `fun` is present, we invoke it passing `listener` as its first argument. This is why we stored `listener` locally, so that we could pass it to this function *after* the listener was removed from `r.listeners`.
 
 ```javascript
-         if (fun) fun (route);
+         if (fun) fun (listener);
 ```
 
-We iterate all the other routes; if any of them has `id` as its parent, we recursively call `r.forget` on it, taking care to also pass `fun`. This allows for tree-like deletion of routes. Notice that if other routes have `id` as a parent, `fun` will be executed multiple times.
+We iterate all the other listeners; if any of them has `id` as its parent, we recursively call `r.forget` on it, taking care to also pass `fun`. This allows for tree-like deletion of listeners. Notice that if other listeners have `id` as a parent, `fun` will be executed multiple times.
 
 ```javascript
-         dale.do (r.routes, function (v, k) {
+         dale.go (r.listeners, function (v, k) {
             if (v.parent === id) r.forget (k, fun);
          });
 ```
@@ -771,7 +860,7 @@ There's nothing else to do, so we close the function.
 
 ### Implementation functions
 
-We define `r.random`, a helper function used by `r.listen` to create random ids for new routes. This function takes no arguments.
+We define `r.random`, a helper function used by `r.listen` to create random ids for listeners and event invocations. This function takes no arguments.
 
 ```javascript
       r.random = function () {
@@ -786,7 +875,7 @@ This function returns a random alphanumeric string (with possible characters bei
 
 We now define `r.isPath`, a helper function that determines whether a `path` is valid. Besides `path`, it takes `fun` (a string with the name of the function that invokes it) and an optional `regex` flag.
 
-This function is used by two usage functions, once by `r.do` and once by `r.listen`.
+This function is used by two usage functions, once by `r.say` and once by `r.listen`.
 
 ```javascript
       r.isPath = function (path, fun, regex) {
@@ -794,7 +883,7 @@ This function is used by two usage functions, once by `r.do` and once by `r.list
 
 `path` can be either an array, an integer or a string. If it's an array, it must be comprised of integers and strings. If the `regex` flag is passed, `path` can also be a regex (and if it's an array, it can also include regexes).
 
-The `regex` flag is used by `r.listen`, because route paths can be (or include) regexes, unlike event paths.
+The `regex` flag is used by `r.listen`, because listener paths can be (or include) regexes, unlike event paths.
 
 ```javascript
          return teishi.v (fun, [
@@ -804,7 +893,7 @@ The `regex` flag is used by `r.listen`, because route paths can be (or include) 
       }
 ```
 
-We define the third and last implementation helper function, `r.compare`. It takes two arguments, a `verb` or `path` element belonging to a route and a `verb` or `path` element belonging to an event. This function is used later by `r.match` to compare verbs and paths.
+We define the third and last implementation helper function, `r.compare`. It takes two arguments, a `verb` or `path` element belonging to a listener and a `verb` or `path` element belonging to an event. This function is used later by `r.match` to compare verbs and paths.
 
 ```javascript
       r.compare = function (rvp, evp) {
@@ -816,7 +905,7 @@ If either of the arguments is a string containing a star (wildcard), the functio
          if (rvp === '*' || evp === '*') return true;
 ```
 
-If the route element (its `verb` or a part of its `path`), we check whether the corresponding event element matches it. Notice we coerce the event element to a string in case it's an integer. Depending on whether there's a match or not, the function will return `true` or `false`.
+If the listener element (its `verb` or a part of its `path`), we check whether the corresponding event element matches it. Notice we coerce the event element to a string in case it's an integer. Depending on whether there's a match or not, the function will return `true` or `false`.
 
 ```javascript
          if (type (rvp) === 'regex') return (evp + '').match (rvp) !== null;
@@ -829,174 +918,161 @@ If we're here, it means that both elements are either strings or integers. The o
       }
 ```
 
-We now define `r.mill`, the implementation function that represents the core engine of the library. This function is invoked by `r.do`. The function takes three arguments, a context (`x`), a `verb` and a `path`.
+We define `r.logpush`, a helper function which adds log entries to `r.log` and is only invoked by `r.say`. The function takes five arguments, most of which are self-explanatory. `from`, the first argument, indicates the id of a previous event that triggered the current one; and `id`, the second argument, represents the id of the event being logged.
 
 ```javascript
-      r.mill = function (x, verb, path) {
+      r.logpush = function (from, id, verb, path, args) {
 ```
 
-The function does some initialization of `x.from`, the object within the context that contains a list of events that fired earlier in the event chain. If `x.from` doesn't exist, we initialize it to an array. If it's an object, we set `x.from` to be an array containing that object; this is done so that if you invoke `r.do` with a manually created `x.from` object, you don't need to wrap it in an array. Finally, if `x.from` is an array, we *copy* it.
-
-After this, `from` will represent our `x.from` object. Because we copied it, we can modify it without changing the `x.from` of other events further up the change.
+If `r.log` is not falsy (which could happen if the user sets `r.log` to `false` to avoid further logging), we push an entry to `r.log`. This entry contains seven items: `t` (a timestamp), `from`, `id`, `verb`, `path` and `args`. `from` can be either undefined or a string; args can be either `undefined` or an array with at least one element inside.
 
 ```javascript
-         var from;
-         if (! x.from)                        from = [];
-         else if (type (x.from) === 'object') from = [x.from];
-         else                                 from = x.from.slice (0);
-```
-
-We place a new object as the first element of `from`, containing `date`, the `verb` and the `path`.
-
-```javascript
-         from.unshift ({date: new Date ().toISOString (), verb: verb, path: path});
-```
-
-We create an array `args` with the arguments to be passed to the route function. They consist of `verb`, `path`, and the `from` we just created. Notice we also append any extra arguments received by `r.mill` (which are the same ones passed to `r.do`).
-
-```javascript
-         var args = [{verb: arguments [1], path: arguments [2], from: from}].concat ([].slice.call (arguments, 3));
-```
-
-If extra arguments were passed to `r.mill`, we place them both inside the context and within the `from` object within the context.
-
-```javascript
-         if (arguments.length > 3) {
-            args [0].args = [].slice.call (arguments, 3);
-            from [0].args = [].slice.call (arguments, 3);
-         }
-```
-
-We define an `inner` function that will execute each of the routes matching the event in turn. `matchingRoutes`, its sole argument, must be an array containing routes.
-
-```javascript
-         var inner = function (matchingRoutes) {
-```
-
-If `matchingRoutes` is empty, there's nothing else to do, so we return `undefined`.
-
-```javascript
-            if (matchingRoutes.length === 0) return;
-```
-
-We set up a `cb` (callback) within the context of args; the purpose of this function is to be executed by asynchronous route functions, so as to preserve the order in which the route functions are executed, even when some of them are asynchronous and some of them are not. Notice that the callback simply executes `inner` recursively.
-
-```javascript
-            args [0].cb = function () {
-               inner (matchingRoutes);
-            }
-```
-
-We pick the first route within `matchingRoutes` and remove it from the array.
-
-```javascript
-            var route = matchingRoutes.shift ();
-```
-
-We set the `route` of the context to the route itself.
-
-```javascript
-            args [0].route = route;
-```
-
-If the route does not exist, we ignore this route and call `inner` recursively. This check is useful if a certain route function removes other route functions that were matched by the same event.
-
-```javascript
-            if (! r.routes [route.id]) return inner (matchingRoutes);
-```
-
-If the route has the `burn` attribute, we invoke `r.forget` to remove it.
-
-```javascript
-            if (route.burn) r.forget (route.id);
-```
-
-`inner` does two more things. First, it invokes the route function of the route, passing `args` to it. Second, if the `rfun` did *not* return a function, then it invokes itself recursively.
-
-Why does `inner` avoid calling itself to process the next route if `rfun` returns a function? Because in case `rfun` is asynchronous, it must signal that to recalc, and to do so it returns a function. However, the asynchronous `rfun` is responsible for invoking `inner` to execute any other routes; by making `cb` available to the `rfun`, we allow asynchronous functions to resume execution of other matching routes for the same event.
-
-```javascript
-            if (type (route.rfun.apply (null, args)) !== 'function') inner (matchingRoutes);
-         }
-```
-
-The last thing left to do is to call `inner` with the matching routes. For this, we invoke `r.match` with the `verb`, `path` and the list of routes. We then invoke `r.sort` on the output of `r.match`, so that the routes are placed in the right order.
-
-```javascript
-         inner (r.sort (r.match (verb, path, r.routes)));
+         if (r.log) r.log.push ({t: teishi.time (), from: from, id: id, verb: verb, path: path, args: args});
       }
 ```
 
-This concludes `r.mill`. Let's now define `r.match`, which is the function that takes a `verb`, a `path` and a list of routes and returns only those routes that match an incoming event.
-
-Instead of reading `r.routes` directly, it is possible to use `r.match` to scan a different set of routes - this is the reason for which `routes` is an argument instead of internally being set to `r.routes`.
+We now define `r.mill`, the implementation function that represents the core engine of the library. This function is invoked by `r.say`. The function takes a context (`x`) plus other yet unspecified arguments.
 
 ```javascript
-      r.match = function (verb, path, routes) {
+      r.mill = function (x) {
 ```
 
-We initialize a `matching` array to store the routes that match the `verb` and `path`.
+We create an array `args` with the arguments to be passed to `r.mill` and which will be passed in turn to matching listener functions. The first element of `args` will be `x` (which already contains `from`, `verb`, `path` and `args`).
+
+```javascript
+         var args = dale.go (arguments, function (v) {return v});
+```
+
+We define an `inner` function that will execute each of the listeners matching the event in turn. `matching`, its sole argument, must be an array containing listeners.
+
+```javascript
+         var inner = function (matching) {
+```
+
+If `matching` is empty, there's nothing else to do, so we return `undefined`.
+
+```javascript
+            if (matching.length === 0) return;
+```
+
+We set up a `cb` (callback) within the context of args; the purpose of this function is to be executed by asynchronous listener functions, so as to preserve the order in which the listener functions are executed, even when some of them are asynchronous and some of them are not. Notice that the callback simply executes `inner` recursively.
+
+```javascript
+            args [0].cb = function () {
+               inner (matching);
+            }
+```
+
+We pick the first listener within `matching` and remove it from the array.
+
+```javascript
+            var listener = matching.shift ();
+```
+
+We set the `listener` of the context to the listener itself.
+
+```javascript
+            args [0].listener = listener;
+```
+
+If the listener does not exist, we ignore this listener and call `inner` recursively. This check is useful if a certain listener function removes other listener functions that were matched by the same event.
+
+```javascript
+            if (! r.listeners [listener.id]) return inner (matching);
+```
+
+If the listener has the `burn` attribute, we invoke `r.forget` to remove it.
+
+```javascript
+            if (listener.burn) r.forget (listener.id);
+```
+
+`inner` does two more things. First, it invokes the listener function of the listener, passing `args` to it. Second, if the `lfun` did *not* return a function, then it invokes itself recursively.
+
+Why does `inner` avoid calling itself to process the next listener if `lfun` returns a function? Because in case `lfun` is asynchronous, it must signal that to recalc, and to do so it returns a function. However, the asynchronous `lfun` is responsible for invoking `inner` to execute any other listeners; by making `cb` available to the `lfun`, we allow asynchronous functions to resume execution of other matching listeners for the same event.
+
+```javascript
+            if (type (listener.lfun.apply (null, args)) !== 'function') inner (matching);
+         }
+```
+
+The last thing left to do is to call `inner` with the matching listeners. For this, we invoke `r.match` with the `verb`, `path` and the list of listeners. We then invoke `r.sort` on the output of `r.match`, so that the listeners are placed in the right order.
+
+```javascript
+         inner (r.sort (r.match (x.verb, x.path, r.listeners)));
+      }
+```
+
+This concludes `r.mill`. Let's now define `r.match`, which is the function that takes a `verb`, a `path` and a list of listeners and returns only those listeners that match an incoming event.
+
+Instead of reading `r.listeners` directly, it is possible to use `r.match` to scan a different set of listeners - this is the reason for which `listeners` is an argument instead of internally being set to `r.listeners`.
+
+```javascript
+      r.match = function (verb, path, listeners) {
+```
+
+We initialize a `matching` array to store the listeners that match the `verb` and `path`.
 
 ```javascript
          var matching = [];
 ```
 
-We iterate the `routes`.
+We iterate the `listeners`.
 
 ```javascript
-         dale.do (routes, function (route) {
+         dale.go (listeners, function (listener) {
 ```
 
-If the route contains a `match` function, we use that function to determine whether the route matches the event. We invoke that function passing the route and an object with `verb` and `path`. Depending on whether that function returned `true` or not, we push the `route` to `matching`; in any case, we're done processing this particular route.
+If the listener contains a `match` function, we use that function to determine whether the listener matches the event. We invoke that function passing the listener and an object with `verb` and `path`. Depending on whether that function returned `true` or not, we push the `listener` to `matching`; in any case, we're done processing this particular listener.
 
 ```javascript
-            if (route.match) return route.match (route, {verb: verb, path: path}) === true ? matching.push (route) : undefined;
+            if (listener.match) return listener.match (listener, {verb: verb, path: path}) === true ? matching.push (listener) : undefined;
 ```
 
-We invoke `r.compare` to compare the `verb` of the route with that of the event. If the comparison is not successful, the route doesn't match.
+We invoke `r.compare` to compare the `verb` of the listener with that of the event. If the comparison is not successful, the listener doesn't match.
 
 ```javascript
-            if (! r.compare (route.verb, verb)) return;
+            if (! r.compare (listener.verb, verb)) return;
 ```
 
-If the route's `path` is longer than that of the event, we consider that there can not be a match.
+If we're here, the verbs match. If both the listener and the event have `paths` of length 0, then the listener will be a match. We push `listener` to the list of matching listeners.
 
 ```javascript
-            if (route.path.length > path.length) return;
+            if (listener.path.length === 0 || path.length === 0) return matching.push (listener);
 ```
 
-If the route's `path` is of length zero, this means its path will necessarily match the event's path. Since the verb is compatible (otherwise we wouldn't be here), we push this route to `matching` and return.
+We take the length of the shortest path (whether it is that of the listener or that of the event), and then proceed to compare the corresponding elements of both paths. If any of the comparisons returns `false`, the loop will be interrupted.
 
 ```javascript
-            if (route.path.length === 0) return matching.push (route);
+            if (dale.stop (dale.times (Math.min (listener.path.length, path.length), 0), false, function (k) {
 ```
 
-We iterate the elements of `route.path`. If any of the iterations returns `false`, the loop will be interrupted.
+We use `r.compare` to compare the kth elements of both paths. `r.compare` returns only `true` or `false`, and if it returns the latter it means that the comparison failed.
 
 ```javascript
-            if (dale.stop (route.path, false, function (v2, k2) {
+               return r.compare (listener.path [k], path [k]);
 ```
 
-We compare the element of the route's `path` against the corresponding element of the event's path. For this, we use `r.compare` again. If `r.compare` returns `false`, the loop is interrupted; if it returns `true`, it keeps on going until the last element of the path is matched.
+If the last iteration of the loop returned `true`, all iterated elements of both paths match with each other. If this is the case, we push the `listener` to `matching`. Notice that if any of the iterations returned `false`, this will not happen.
 
 ```javascript
-               return r.compare (v2, path [k2]);
+            })) matching.push (listener);
 ```
 
-If the last iteration of the loop returned `true`, all the elements of the route's `path` match the corresponding elements of the event's `path`. If this is the case, we push the `route` to `matching`.
+We close the iteration of the listeners.
 
 ```javascript
-            })) matching.push (route);
+         });
 ```
 
-We return the array of matching routes and close the function.
+We return the array of matching listeners and close the function.
 
 ```javascript
          return matching;
       }
 ```
 
-We define `r.sort`, a function that takes a list of routes (outputted by `r.match`) and sorts it by priority.
+We define `r.sort`, a function that takes a list of listeners (outputted by `r.match`) and sorts it by priority.
 
 ```javascript
       r.sort = function (matching) {
@@ -1008,7 +1084,7 @@ We apply `sort` on `matching`, using a custom sort function. Notice that we modi
          return matching.sort (function (a, b) {
 ```
 
-We sort the routes based on their `priority` value. If no `priority` is defined, we'll consider the route to have a `priority` of 0. The higher the priority, the closer a route will be to the beginning of the array.
+We sort the listeners based on their `priority` value. If no `priority` is defined, we'll consider the listener to have a `priority` of 0. The higher the priority, the closer a listener will be to the beginning of the array.
 
 ```javascript
             return (b.priority || 0) - (a.priority || 0);

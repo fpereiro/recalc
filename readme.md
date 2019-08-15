@@ -30,7 +30,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@9fe30369a2acef87ed062131c8634d858b8f3143/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@8442dc09f0518b93fc9b5fbdf5268d589b7d54fd/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@ /recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@449dd9fafa1f1397400bca5f27535e6fe3b7b17a/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -445,7 +445,7 @@ The two functions above will set the third element of `r.store` to the value `'s
 
 Whenever an event is fired with `r.say`, an entry will be added to `r.log` with the following fields: `{t: TIMESTAMP, id: STRING, from: STRING|UNDEFINED, verb: ..., path: ..., args: UNDEFINED|ARRAY}`. `id` corresponds to the value returned by a successful invocation to `r.say`.
 
-If you are inside a `lfun` and you want to trigger further events with `r.say`, **you can pass the context (`x`) argument as the first argument to `r.say`**. This will allow you to create trackable chain of events.
+If you are inside a `lfun` and you want to trigger further events with `r.say`, **you can pass the context (`x`) argument as the first argument to `r.say`**. This will allow you to create a trackable chain of events.
 
 This is quite hard to grasp conceptually, so let's see an example:
 
@@ -465,14 +465,14 @@ The invocation to `r.say` from within the `lfun` will return another id (let's c
 
 ```
 [
-   {id: 'id1', from: undefined, verb: 'hello', path: ['there'],     t: ..., args: undefined},
+   {id: 'id1', from: undefined, verb: 'hello',   path: ['there'],   t: ..., args: undefined},
    {id: 'id2', from: 'id1',     verb: 'goodbye', path: ['goodbye'], t: ..., args: undefined},
 ]
 ```
 
 As you can see, the log for `id2` will mark that this event came *from* `id1`.
 
-Any `lfuns` matched by `id2` will receive `id2` as its `x.from`, and if you pass the context to further event invocations, you'll have longer chains of dependencies. In this way, you have the raw data to track complex (and often asynchronous) events, which can be useful in many applications.
+Any `lfuns` matched by `id2` will receive `id2` as its `x.from`, and if you pass the context to further event invocations, you'll have longer chains of dependencies. In this way, you will have the raw data to track complex (and often asynchronous) events, which can be useful in many applications.
 
 Two more things to have in mind: if you don't pass `x` to an invocation to `r.say` within a `lfun`, recalc has no way of knowing where that event came from and then the chain will be broken. The second one is that initial invocations of `r.say` (that happen on their own, without being the result of previous events) will naturally receive no context, since there's no context yet for them.
 

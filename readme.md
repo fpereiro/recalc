@@ -8,7 +8,9 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v4.0.0, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v4.0.1, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+
+recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
 ## Installation
 
@@ -28,9 +30,9 @@ recalc is written in Javascript. You can use it in the browser by sourcing the d
 Or you can use these links to the latest version - courtesy of [jsDelivr](https://jsdelivr.com).
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@9fe30369a2acef87ed062131c8634d858b8f3143/dale.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@8442dc09f0518b93fc9b5fbdf5268d589b7d54fd/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@449dd9fafa1f1397400bca5f27535e6fe3b7b17a/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@aad320880d95ca9aea84a6cf30f95949223b3f12/dale.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@979a71d47b0038954dc28b94da95a1900d0aaf92/teishi.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -478,12 +480,12 @@ Two more things to have in mind: if you don't pass `x` to an invocation to `r.sa
 
 Finally, if you want to turn off logging, you can always do so by setting `r.log` to `false`.
 
-## Implementation functions
+## Internals
 
 There's seven other functions that support the usage functions. If you override them, you can change the innards of recalc. These are:
 
 - `r.isPath`, a helper function to determine whether something is a valid `path`.
-- `r.random`, a helper function for generating random ids for new listeners.
+- `r.random`, a helper function for generating random ids for events and listeners.
 - `r.compare`, a helper function for comparing a listener item (either the verb or one of the elements of the path) with a corresponding event item; this function is used by `r.match`.
 - `r.logpush`, a helper function that pushes a log entry to `r.log` as long as `r.log` is not `false`.
 - `r.mill`, the function that gets executed by `r.say` when an event is fired - it represents the core engine of the library.
@@ -498,7 +500,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v4.0.0
+recalc - v4.0.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -508,7 +510,7 @@ Please refer to readme.md to read the annotated source.
 
 ### Setup
 
-We wrap the entire file in a self-executing anonymous function. This practice is commonly named [the javascript module pattern](http://yuiblog.com/blog/2007/06/12/module-pattern/). The purpose of it is to wrap our code in a closure and hence avoid making the local variables we define here to be available outside of this module. A cursory test indicates that local variables exceed the scope of a file in the browser, but not in node.js. Globals exceed their scope despite this pattern - but we won't be using them.
+We wrap the entire file in a self-executing anonymous function. This practice is commonly named [the javascript module pattern](http://yuiblog.com/blog/2007/06/12/module-pattern/). The purpose of it is to wrap our code in a closure and hence avoid making the local variables we define here to be available outside of this module. A cursory test indicates that local variables exceed the scope of a script in the browser, but not in node.js. This means that this pattern is useful only on the browser.
 
 ```javascript
 (function () {
@@ -520,22 +522,24 @@ Since this file must run both in the browser and in node.js, we define a variabl
    var isNode = typeof exports === 'object';
 ```
 
-We require [dale](http://github.com/fpereiro/dale) and [teishi](http://github.com/fpereiro/teishi).
+We require [dale](http://github.com/fpereiro/dale) and [teishi](http://github.com/fpereiro/teishi). Note that, in the browser, `dale` and `teishi` will be loaded as global variables.
 
 ```javascript
    var dale   = isNode ? require ('dale')   : window.dale;
    var teishi = isNode ? require ('teishi') : window.teishi;
 ```
 
+This is the most succinct form I found to export an object containing all the public members (functions and constants) of a javascript module. Note that, in the browser, we use the global variable `recalc` to export the library.
+
 ```javascript
    if (isNode) var lith = exports;
    else        var lith = window.lith = {};
 ```
 
-We create an alias to `teishi.t`, the function for finding out the type of an element. We do the same for `teishi.l`, a function for printing logs that also returns `false`.
+We create an alias to `teishi.type`, the function for finding out the type of an element. We do the same for `teishi.clog`, a function for printing logs that also returns `false`.
 
 ```javascript
-   var type = teishi.t, log = teishi.l;
+   var type = teishi.type, log = teishi.clog;
 ```
 
 ### Constructor
@@ -693,7 +697,7 @@ We set two local variables: `options` (as of yet uninitialized) and `lfun` (set 
 `r.listen` is a variadic function that must receive a minimum of two arguments. If it receives less than two arguments, we will print an error and return `false`.
 
 ```javascript
-         if (arguments.length < 2) return log ('r.listen', 'Too few arguments passed to r.listen');
+         if (arguments.length < 2) return clog ('r.listen', 'Too few arguments passed to r.listen');
 ```
 
 If we receive two arguments only, we'll consider `options` to be the first one. Since we already set `lfun` to the last argument received, there's nothing else to do in this case.
@@ -782,7 +786,7 @@ If `options.id` is present, we check that there's no listener within `r.listener
 
 ```javascript
          if (options.id) {
-            if (r.listeners [options.id]) return log ('r.listen', 'A listener with id', options.id, 'already exists.');
+            if (r.listeners [options.id]) return clog ('r.listen', 'A listener with id', options.id, 'already exists.');
          }
 ```
 
@@ -822,13 +826,13 @@ This function takes two arguments, `id` and `fun`. The first one is the `id` of 
 If present, `fun` must be a function; otherwise we print an error and return `false`.
 
 ```javascript
-         if (fun !== undefined && type (fun) !== 'function') return log ('Second argument to r.forget must be a function or undefined.');
+         if (fun !== undefined && type (fun) !== 'function') return clog ('Second argument to r.forget must be a function or undefined.');
 ```
 
 If the listener does not exist, we print an error and return `false`.
 
 ```javascript
-         if (! r.listeners [id]) return log ('listener', id, 'does not exist.');
+         if (! r.listeners [id]) return clog ('listener', id, 'does not exist.');
 ```
 
 We store the listener in a local variable `listener`. We then remove it from `r.listeners`.
@@ -858,7 +862,7 @@ There's nothing else to do, so we close the function.
       }
 ```
 
-### Implementation functions
+### Internals
 
 We define `r.random`, a helper function used by `r.listen` to create random ids for listeners and event invocations. This function takes no arguments.
 

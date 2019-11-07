@@ -1,5 +1,5 @@
 /*
-recalc - v4.0.0
+recalc - v4.0.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -14,7 +14,7 @@ Please refer to readme.md to read the annotated source.
 
    var dale   = isNode ? require ('dale')   : window.dale;
    var teishi = isNode ? require ('teishi') : window.teishi;
-   var type   = teishi.t, log = teishi.l;
+   var type   = teishi.type, clog = teishi.clog;
 
    // *** CONSTRUCTOR ***
 
@@ -64,7 +64,7 @@ Please refer to readme.md to read the annotated source.
       r.listen = function () {
 
          var options, lfun = arguments [arguments.length - 1];
-         if (arguments.length < 2) return log ('r.listen', 'Too few arguments passed to r.listen');
+         if (arguments.length < 2) return clog ('r.listen', 'Too few arguments passed to r.listen');
          if (arguments.length === 2) options = arguments [0];
          else {
             options      = arguments.length === 3 ? {} : arguments [2];
@@ -90,7 +90,7 @@ Please refer to readme.md to read the annotated source.
          ])) return false;
 
          if (options.id) {
-            if (r.listeners [options.id]) return log ('r.listen', 'A listener with id', options.id, 'already exists.');
+            if (r.listeners [options.id]) return clog ('r.listen', 'A listener with id', options.id, 'already exists.');
          }
          else options.id = r.random ();
          options.lfun = lfun;
@@ -100,8 +100,8 @@ Please refer to readme.md to read the annotated source.
       }
 
       r.forget = function (id, fun) {
-         if (fun !== undefined && type (fun) !== 'function') return log ('Second argument to r.forget must be a function or undefined.');
-         if (! r.listeners [id]) return log ('listener', id, 'does not exist.');
+         if (fun !== undefined && type (fun) !== 'function') return clog ('Second argument to r.forget must be a function or undefined.');
+         if (! r.listeners [id]) return clog ('listener', id, 'does not exist.');
          var listener = r.listeners [id];
          delete r.listeners [id];
          if (fun) fun (listener);
@@ -110,7 +110,7 @@ Please refer to readme.md to read the annotated source.
          });
       }
 
-      // *** BACKEND ***
+      // *** INTERNALS ***
 
       r.isPath = function (path, fun, regex) {
          return teishi.v (fun, [

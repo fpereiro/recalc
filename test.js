@@ -1,5 +1,5 @@
 /*
-recalc - v4.0.0
+recalc - v4.0.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -26,14 +26,14 @@ To run the tests:
    var teishi = isNode ? require ('teishi')      : window.teishi;
    var R      = isNode ? require ('./recalc.js') : window.R;
 
-   var type   = teishi.t, log = teishi.l, eq = teishi.eq;
+   var type   = teishi.type, clog = teishi.clog, eq = teishi.eq;
 
    var tests  = [];
 
    R.perf = true;
 
    var error  = function (r, error) {
-      log ('DEBUG', {
+      clog ('DEBUG', {
          store:  r.store,
          listeners: r.listeners
       });
@@ -336,7 +336,7 @@ To run the tests:
 
       r.listen ('b', 'a', function (x) {
          var llog = teishi.last (r.log);
-         var blog = r.log [r.log.length - 2];
+         var blog = teishi.last (r.log, 2);
          if (llog.from !== blog.id) return error (r, 'x.from not passed properly #1.');
          if (llog.verb !== 'b' || ! teishi.eq (llog.path, ['a'])) return (r, 'x.from log contains invalid verb/path #1.');
          counter++;
@@ -344,7 +344,7 @@ To run the tests:
 
       r.listen ('b', 'b', function (x) {
          var llog = teishi.last (r.log);
-         var blog = r.log [r.log.length - 3];
+         var blog = teishi.last (r.log, 3);
          if (llog.from !== blog.id) return error (r, 'x.from not passed properly #2.');
          if (llog.verb !== 'b' || ! teishi.eq (llog.path, ['b'])) return (r, 'x.from log contains invalid verb/path #2.');
          counter++;
@@ -577,7 +577,7 @@ To run the tests:
       r = R ();
       setTimeout (function () {
          if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed.');
-         if (isNode) log ('Success', 'All tests were successful!');
+         if (isNode) clog  ('Success', 'All tests were successful!');
          else        alert ('All tests were successful!');
       }, 500);
       dale.go ([

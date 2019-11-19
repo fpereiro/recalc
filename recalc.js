@@ -1,5 +1,5 @@
 /*
-recalc - v4.0.1
+recalc - v4.0.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -57,7 +57,7 @@ Please refer to readme.md to read the annotated source.
          var from = x ? x.from : undefined;
          x = {from: 'E' + r.random (), verb: verb, path: path, args: args};
          r.logpush (from, x.from, verb, path, args);
-         r.mill.apply (null, [x].concat (args));
+         r.mill.apply (null, args === undefined ? [x] : [x].concat (args));
          return x.from;
       }
 
@@ -115,7 +115,7 @@ Please refer to readme.md to read the annotated source.
       r.isPath = function (path, fun, regex) {
          return teishi.v (fun, [
             ['path', path, ['array', 'integer', 'string'].concat (regex ? 'regex' : []), 'oneOf'],
-            ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf'],
+            ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf']
          ]);
       }
 

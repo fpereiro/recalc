@@ -1,5 +1,5 @@
 /*
-recalc - v4.0.1
+recalc - v4.0.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -80,7 +80,7 @@ To run the tests:
          [{from: ['a']}, 'verb', 'path'],
          [{from: [{}, '']}, 'verb', 'path'],
          [{from: [[{}]]}, 'verb', 'path'],
-         [[], 'verb', 'path'],
+         [[], 'verb', 'path']
       ], true, function (args) {
          if (r.say.apply (null, args) !== false) return true;
       })) return error (r, 'Invalid input to r.say was accepted.');
@@ -98,10 +98,20 @@ To run the tests:
    tests.push (function () {
       var r = R ();
       var id = r.listen ('do', '*', function (x, arg1, arg2) {
-         if (arg1 !== 'foo' || arg2 !== 'bar') return error (r, 'Extra arguments weren\'t passed to rfun.');
+         if (arg1 !== 'foo' || arg2 !== 'bar') return error (r, 'Extra arguments weren\'t passed to lfun.');
       });
       if (type (id) !== 'string') return error (r, 'r.listen didn\'t return id of the created listener.');
       r.say ('do', '*', 'foo', 'bar');
+
+      r.listen ('do2', '*', function (x, arg1) {
+         if (arguments.length !== 2 || arg1 !== undefined) return error (r, 'Undefined arguments weren\'t passed to lfun.');
+      });
+      r.say ('do2', [], undefined);
+
+      r.listen ('do3', '*', function (x, arg1) {
+         if (arguments.length !== 1) return error (r, 'Undefined arguments passed to lfun but no arguments were passed.');
+      });
+      r.say ('do3', []);
    });
 
    tests.push (function () {

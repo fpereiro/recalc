@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v4.0.1, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v4.0.2, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -30,9 +30,9 @@ recalc is written in Javascript. You can use it in the browser by sourcing the d
 Or you can use these links to the latest version - courtesy of [jsDelivr](https://jsdelivr.com).
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@aad320880d95ca9aea84a6cf30f95949223b3f12/dale.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@979a71d47b0038954dc28b94da95a1900d0aaf92/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@d5cee6ce986292da61767869dc7fa072f4f75a12/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@e074268833c7beef89796ba368b0489e0fbe5caf/dale.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@74559ed3301dcdf9acabb3b938d9eeeab8d224db/teishi.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -500,7 +500,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v4.0.1
+recalc - v4.0.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -669,10 +669,10 @@ We invoke a helper function, `r.logpush`, to add a log entry to `r.log`. We will
          r.logpush (from, x.from, verb, path, args);
 ```
 
-We call an internal function, `r.mill`, passing it `x` (which already contains `verb` and `path`) plus `args`. For doing this, we use `apply`, which allows us to pass to the function an array with all the arguments.
+We call an internal function, `r.mill`, passing it `x` (which already contains `verb` and `path`) plus `args`. For doing this, we use `apply`, which allows us to pass to the function an array with all the arguments. If `args` is `undefined`, we only pass `x` to `r.mill`.
 
 ```javascript
-         r.mill.apply (null, [x].concat (args));
+         r.mill.apply (null, args === undefined ? [x] : [x].concat (args));
 ```
 
 We return `x.from`, which contains an id to identify the current event invocation. This concludes the function.
@@ -892,7 +892,7 @@ The `regex` flag is used by `r.listen`, because listener paths can be (or includ
 ```javascript
          return teishi.v (fun, [
             ['path', path, ['array', 'integer', 'string'].concat (regex ? 'regex' : []), 'oneOf'],
-            ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf'],
+            ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf']
          ]);
       }
 ```

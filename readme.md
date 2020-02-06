@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v4.0.3, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v4.1.0, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@7e1be108aa52beef7ad84f8c31649cfa23bc8f53/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@93b977548301d17f8b2fb31a60242ceed810b1f1/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@58524dd41f286337a495bf63c6a520b5eeb5beec/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -71,11 +71,11 @@ But an interactive program, like a game or a web page, has to process interactio
 
 This library is an attempt to answer that question.
 
-If we can't get rid of side effects, we can instead embrace them without forgetting our functional roots. We can consider that each side effect is an *event*. When a side effect comes in, we make our program fire an event. And here's the kicker: there might be one or more listeners for a given event. Those listeners are simply functions that then operate in consequence. In this way, you can work on the problem of passing control around when side effects come into the picture.
+If we can't get rid of side effects, we can instead embrace them without forgetting our functional roots. We can consider that each side effect is an *event*. When a side effect comes in, we make our program *say* an event. And here's the kicker: there might be one or more *listeners* for a given event. Those listeners are merely functions that are executed as a consequence of a given event being said. In this way, you can work on the problem of passing control around when side effects come into the picture.
 
 The other question is: how do we pass data around? Since there might be multiple listeners to an event, operating sequentially or parallely, it would be messy to depend on return values. Instead, we can create a central object where we can store all the state of the application. A *global object* shared by all functions (I hope you're cringing now), which we call the *store*.
 
-But wait! If these events and their handlers modify this global object, wouldn't be this merely be imperative programming? It would, except for one catch: data changes on the global state can also be expressed as events, to which functions can respond/react. So you don't just increment a variable. You increment it through an event that notifies everyone concerned. Events allow us to create first-class side effects, so that we can define them, pass them around and reason about them in a clear way.
+But wait! If these events and their handlers modify this global object, wouldn't be this merely be imperative programming? It would, except for one catch: data changes on the global state can also be expressed as events, to which functions can respond/react. So you don't just increment a variable. You increment it through an event that notifies everyone concerned. Events allow us to create *first-class side effects*, so that we can define them, pass them around and reason about them in a clear way.
 
 From a functional perspective, this is tantamount to heresy. We're talking here about systematizing side effects, using a global state to pass data and ignoring the return values from event handlers. However, this is exactly how I think that functional programming should be extended to deal with programs which continually interact with the outside world. In other words, this is an attempt to find the general case of functional programming.
 
@@ -135,6 +135,8 @@ If you want to turn off logging, you can set `r.log` to `false` at the top of yo
 ### `r.say`
 
 So far, `listeners`, `store` and `log` are simple objects. Where's the action? Enter `r.say`. This function *fires* events.
+
+The standard practice is to say that events are *fired* or *triggered*. We use the term *say* instead, in order to emphasize two things: 1) the complementary nature of *saying* and *listening*; 2) the fact that events represent verbal communication.
 
 Every event has two properties:
 
@@ -273,7 +275,7 @@ Let's see now which `options` can be passed to a listener. `options` All of them
 - `match`: a function that is used to determine whether the listener matches a given event. This function works as a bypass to the standard matching logic defined in `r.match`. This function receives the `listener` as the first argument and an object of the form `{verb: ..., path: ...}` with the `verb` and `path` corresponding to the given event as a second argument. This function must return `true` to indicate that the given event matches the listener; otherwise, the listener won't be called for that particular event.
 - `priority`: an integer value. By default this is `undefined` (which will be considered as a priority of `0`). The higher the value, the sooner this listener will be executed in case of a match. You can also use negative values.
 
-This last property reminds us that it is perfectly normal to have more than one listener matching a certain event. `priority` simply lets us make certain listeners to be executed ahead of others. This allows for sophisticated (yet necessary) constructs like view redrawing, where some listeners have to be fired ahead of others to prevent unnecessary operations. **Listeners of equal priority are run in arbitrary order** - to ensure a specific sequence, you need to use the `priority` parameter.
+This last property reminds us that it is perfectly normal to have more than one listener matching a certain event. `priority` simply lets us make certain listeners to be executed ahead of others. This allows for sophisticated (yet necessary) constructs like view redrawing, where some listeners have to be fired ahead of others to prevent unnecessary operations. As of recalc >= v4.1.0, listeners of equal priority are run first by the order in they were created - older listeners are executed before new ones (previous versions executed listeners of equal priority in arbitrary order). To keep track of which listeners were created first, an `index` parameter is added to each `listener` - the lower the `index`, the earlier the listener was created.
 
 It is also perfectly possible to have *zero* listeners matching a certain event.
 
@@ -364,11 +366,15 @@ For example, `r.forget ('foo', function (r) {console.log (r.id)})` will print `f
 
 If you pass a function as the second argument to `r.forget`, the listener being deleted will be removed from `r.listeners` before this function is executed.
 
+### `r.count`
+
+For the sake of completeness, we mention a seventh element, `r.count`, which is a mere counter variable to keep track of how many listeners we added so far. The `index` variable added by `r.listen` to each listener references and increments `r.count`. This is solely for the purpose of disambiguating the execution order of listeners with the same priority.
+
 ### listener functions
 
 I lied - you also need to understand how listener functions work in order to use recalc. But this is the very last thing.
 
-A listener function always receives a `context` as its first argument. The context is an object with six elements:
+A listener function always receives an `execution context` (or merely *context*) as its first argument. The context is an object with six elements:
 
 - `verb`, the verb of the event that matched the listener.
 - `path`, the path of the event that matched the listener.
@@ -480,6 +486,20 @@ Two more things to have in mind: if you don't pass `x` to an invocation to `r.sa
 
 Finally, if you want to turn off logging, you can always do so by setting `r.log` to `false`.
 
+### `r.prod` and `r.error`
+
+In addition to the six elements of a recalc instance, there's two more that you can optionally use.
+
+The first one is `r.prod`. If you set this flag to `true`, all the recalc functions will stop performing validations. This can be useful to speed up a thoroughly debugged application - you can roughly expect to save execution time by ~20% when invoking `r.say` and by ~90% when invoking `r.listen`. Please be aware that if you turn on `r.prod` and there's an error in your code, you'll experience either an exception or unexpected behavior, so be sure to turn this on when you are very confident of your code.
+
+The second one is `r.error`. This is a function that is executed whenever one of recalc's functions finds a validation error - if any recalc function receives invalid inputs, it will invoke `r.error` and pass to it one or more arguments describing the error. `r.error` is by default mapped to `teishi.clog`, which prints output to the console and returns `false`.
+
+If you want to override `r.error`, make sure that the function returns `false`, otherwise  It defaults to printing errors to the console, but you can override it with another function for custom error reporting.
+
+### Turning off a listener
+
+If you set a listeners `disabled` property to `true` (i.e.: `r.listeners.SOMEID.disabled = true`), said listener won't be matched by any events until the property is set to `false` or eliminated. This allows for temporarily disabling a listener without having to store it in a variable, remove it and later add it again.
+
 ## Internals
 
 There's seven other functions that support the usage functions. If you override them, you can change the innards of recalc. These are:
@@ -494,13 +514,13 @@ There's seven other functions that support the usage functions. If you override 
 
 ## Source code
 
-The complete source code is contained in `recalc.js`. It is about 190 lines long.
+The complete source code is contained in `recalc.js`. It is about 200 lines long.
 
 Below is the annotated source.
 
 ```javascript
 /*
-recalc - v4.0.3
+recalc - v4.1.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -563,20 +583,33 @@ The `store` can be `undefined`, an array or an object. By passing a `store` to `
 We create `r`, a local object which will be the sole thing returned by the constructor. We'll put everything inside of `r`.
 
 ```javascript
-      var r = {};
+      var r = {
 ```
 
 We set `r.listeners` to be an empty object; as for `r.store`, we set it to the `store` passed to `main`, else we initialize it to an empty object. Notice that the `listeners` are going to be stored outside the `store`.
 
 ```javascript
-      r.listeners = {};
-      r.store     = store || {};
+         listeners: {},
+         store:     store || {},
 ```
 
 We set `r.log` to an empty array.
 
 ```javascript
-      r.log       = [];
+         log:       [],
+```
+
+We set `r.error` to `clog` (`teishi.clog`). By using `r.error` below to report errors, we make it possible to report errors in a different way other than printing them to the console.
+
+```javascript
+         error:     clog,
+```
+
+Finally we set `r.count` to 0; we will use this variable in `r.listen` to register the order in which listeners were added.
+
+```javascript
+         count:     0
+      }
 ```
 
 ### The three usage functions
@@ -590,7 +623,7 @@ We now define the first of the three usage functions, `r.say`, which serves the 
 `r.say` is a variadic function (this means it takes a variable number of arguments). While it must always receive a `verb` and a `path`, it can optionally receive a `context` (named `x`, here and henceforth). Since the `verb` cannot be an object, we consider `x` to be present if the first argument is an object. We then consider the following arguments to be the `verb` and the `path`.
 
 ```javascript
-         var x = type (arguments [0]) === 'object' ? arguments [0] : undefined;
+         var x    = type (arguments [0]) === 'object' ? arguments [0] : undefined;
          var verb = arguments [x ? 1 : 0];
          var path = arguments [x ? 2 : 1];
 ```
@@ -601,10 +634,10 @@ A valid path can only be an array. However, it is quite convenient to write path
          if (teishi.simple (path)) path = [path];
 ```
 
-We now validate the arguments passed to `r.say`.
+If `r.prod` is falsy, we validate the arguments passed to `r.say`.
 
 ```javascript
-         if (teishi.stop ('r.say', [
+         if (! r.prod && teishi.stop ('r.say', [
 ```
 
 If `x` is not `undefined`, it must be an object (remember that when detecting whether `x` was passed, we only considered that to happen only if the first argument was an object).
@@ -623,17 +656,23 @@ If `x` is present, we check that `x.from` should be either a string or undefined
 
 This concludes our validation of `x`.
 
-We check that `verb` is a string; as for `path`, we invoke a helper function `r.isPath` that will return `true` or `false` depending on whether `path` is a valid path. While we'll see the implementation of `r.isPath` later, this function makes sure that `path` is an array composed of strings and integers.
+We check that `verb` is a string.
 
 ```javascript
-            ['verb', verb, 'string'],
-            r.isPath (path, 'r.say')
+            ['verb', verb, 'string']
 ```
 
-If any part of the validation fails, we return `false`.
+If any part of the validation fails, we return `false`. Note we pass `r.error` as an apres argument so that this function will also receive the validation error, if any.
 
 ```javascript
-         ])) return false;
+         ], function (error) {
+            r.error (x, 'r.say', error);
+         })) return false;
+```
+If `r.prod` is falsy, we check that `path` is valid through a helper function `r.isPath` that will return `true` or `false`. While we'll see the implementation of `r.isPath` later, this function makes sure that `path` is an array composed of strings and integers. In case of error, we print it through `r.error` and return `false`.
+
+```javascript
+         if (! r.prod && ! r.isPath (path)) return r.error (x, 'r.say', 'Invalid path. Arguments:', {verb: verb, path: path});
 ```
 
 We define two local variables. First, `oargs`, which is a mere reference to `arguments`. Second, we create `args`, which will be either an array with all the "extra" arguments received by `r.say` (that is, arguments beyond `x`, `verb` and `path`). If no extra arguments are passed, this variable will be undefined.
@@ -669,10 +708,10 @@ We invoke a helper function, `r.logpush`, to add a log entry to `r.log`. We will
          r.logpush (from, x.from, verb, path, args);
 ```
 
-We call an internal function, `r.mill`, passing it `x` (which already contains `verb` and `path`) plus `args`. For doing this, we use `apply`, which allows us to pass to the function an array with all the arguments. If `args` is `undefined`, we only pass `x` to `r.mill`.
+We call an internal function, `r.mill`, passing it an array with all the arguments. If there are no extra arguments, we merely pass `x` wrapped in an array; otherwise, we pass an array with `x` plus all the extra arguments. Note that `x` already contains `verb` and `path`.
 
 ```javascript
-         r.mill.apply (null, args === undefined ? [x] : [x].concat (args));
+         r.mill (args === undefined ? [x] : [x].concat (args));
 ```
 
 We return `x.from`, which contains an id to identify the current event invocation. This concludes the function.
@@ -697,7 +736,7 @@ We set two local variables: `options` (as of yet uninitialized) and `lfun` (set 
 `r.listen` is a variadic function that must receive a minimum of two arguments. If it receives less than two arguments, we will print an error and return `false`.
 
 ```javascript
-         if (arguments.length < 2) return clog ('r.listen', 'Too few arguments passed to r.listen');
+         if (arguments.length < 2) return r.error ('r.listen', 'Too few arguments passed to r.listen');
 ```
 
 If we receive two arguments only, we'll consider `options` to be the first one. Since we already set `lfun` to the last argument received, there's nothing else to do in this case.
@@ -722,10 +761,10 @@ In the same way as `r.say`, `r.listen` automatically wraps any simple path (ie: 
          if (teishi.simple (options.path)) options.path = [options.path];
 ```
 
-We now validate the arguments.
+If `r.prod` is falsy, we validate the arguments.
 
 ```javascript
-         if (teishi.stop ('r.listen', [
+         if (! r.prod && teishi.stop ('r.listen', [
 ```
 
 `options` must be an object and only certain keys are allowed in it.
@@ -739,13 +778,7 @@ We now validate the arguments.
 
 ```javascript
             function () {return [
-               ['options.verb', options.verb, ['string', 'regex'], 'oneOf'],
-```
-
-As for `path`, we validate it with `r.isPath`, which we'll define later. In this case, we consider a `path` as valid if it's an array composed of strings, integers and regexes.
-
-```javascript
-               r.isPath (options.path, 'r.listen', true),
+               ['options.verb',     options.verb,     ['string', 'regex'],                'oneOf'],
 ```
 
 If defined, both `options.id` and `options.parent` must be strings or integers.
@@ -765,7 +798,7 @@ If defined, `options.priority` must be an `integer`, as `options.burn` must be a
 If defined, `options.match` must be a function.
 
 ```javascript
-               ['options.match',    options.match,    ['undefined', 'function'], 'oneOf']
+               ['options.match',    options.match,    ['undefined', 'function'],          'oneOf']
             ]},
 ```
 
@@ -775,22 +808,30 @@ If defined, `options.match` must be a function.
             ['listener function', lfun, 'function']
 ```
 
-If any part of the validation fails, we return `false`.
+If any part of the validation fails, we return `false`. Note we pass `r.error` as an apres argument so that this function will also receive the validation error, if any.
 
 ```javascript
-         ])) return false;
-
+         ], function (error) {
+            r.error ('r.listen', error);
+         })) return false;
 ```
 
-If `options.id` is present, we check that there's no listener within `r.listeners` with that id. If it does, we print an error and return `false`.
+If `r.prod` is falsy, we validate `path` with `r.isPath`, which we'll define later. In this case, we consider a `path` as valid if it's an array composed of strings, integers and regexes (which is the reason for passing `true` as the second argument to `r.isPath`). If there's an error, we print it through `r.error` and return `false`.
 
 ```javascript
-         if (options.id) {
-            if (r.listeners [options.id]) return clog ('r.listen', 'A listener with id', options.id, 'already exists.');
+         if (! r.prod && ! r.isPath (options.path, true)) return r.error ('r.listen', 'Invalid path. Options:', options);
+```
+
+If `options.id` is not `undefined`, we first coerce it into a string (in case it is an integer). Second, if `r.prod` is falsy, we check that there's no listener within `r.listeners` with that id. If it does, we print an error and return `false`.
+
+```javascript
+         if (options.id !== undefined) {
+            options.id += '';
+            if (! r.prod && r.listeners [options.id]) return r.error ('r.listen', 'A listener with id', options.id, 'already exists.');
          }
 ```
 
-If `options.id` is not present, we invoke `r.random` to generate one.
+If `options.id` is `undefined`, we invoke `r.random` to generate an id.
 
 ```javascript
          else options.id = r.random ();
@@ -800,6 +841,12 @@ We place `lfun` within the `options` object.
 
 ```javascript
          options.lfun = lfun;
+```
+
+We set `options.index` to the current value of `r.count`, and increment `r.count`.
+
+```javascript
+         options.index = r.count++;
 ```
 
 By this point, `options` contains all the information relevant for the listener - it is effectively the listener object. We now set it within `r.listeners`.
@@ -823,16 +870,16 @@ This function takes two arguments, `id` and `fun`. The first one is the `id` of 
       r.forget = function (id, fun) {
 ```
 
-If present, `fun` must be a function; otherwise we print an error and return `false`.
+If present, `fun` must be a function; otherwise we print an error and return `false`. Note we skip the check if `r.prod` is falsy.
 
 ```javascript
-         if (fun !== undefined && type (fun) !== 'function') return clog ('Second argument to r.forget must be a function or undefined.');
+         if (! r.prod && fun !== undefined && type (fun) !== 'function') return r.error ('r.forget', 'Second argument to r.forget must be a function or undefined. Id is:', id);
 ```
 
-If the listener does not exist, we print an error and return `false`.
+If `r.prod` is falsy and the listener does not exist, we print an error and return `false`.
 
 ```javascript
-         if (! r.listeners [id]) return clog ('listener', id, 'does not exist.');
+         if (! r.prod && ! r.listeners [id])                             return r.error ('r.forget', 'Listener', id, 'does not exist.');
 ```
 
 We store the listener in a local variable `listener`. We then remove it from `r.listeners`.
@@ -864,6 +911,28 @@ There's nothing else to do, so we close the function.
 
 ### Internals
 
+We now define `r.isPath`, a helper function that determines whether a `path` is valid. Besides `path` it takes an optional `regex` flag.
+
+This function is used by two usage functions, once by `r.say` and once by `r.listen`.
+
+```javascript
+      r.isPath = function (path, fun, regex) {
+```
+
+`path` can be either an array, an integer or a string. If it's an array, it must be comprised of integers and strings. If the `regex` flag is passed, `path` can also be a regex (and if it's an array, it can also include regexes).
+
+The `regex` flag is used by `r.listen`, because listener paths can be (or include) regexes, unlike event paths.
+
+We return the result of invoking `teishi.v` with these rules. We also pass an empty `apres` argument to `teishi.v` so that if there's an error, we don't print it.
+
+```javascript
+         return teishi.v ([
+            ['path', path, ['array', 'integer', 'string'].concat (regex ? 'regex' : []), 'oneOf'],
+            ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf']
+         ], function () {});
+      }
+```
+
 We define `r.random`, a helper function used by `r.listen` to create random ids for listeners and event invocations. This function takes no arguments.
 
 ```javascript
@@ -877,27 +946,7 @@ This function returns a random alphanumeric string (with possible characters bei
       }
 ```
 
-We now define `r.isPath`, a helper function that determines whether a `path` is valid. Besides `path`, it takes `fun` (a string with the name of the function that invokes it) and an optional `regex` flag.
-
-This function is used by two usage functions, once by `r.say` and once by `r.listen`.
-
-```javascript
-      r.isPath = function (path, fun, regex) {
-```
-
-`path` can be either an array, an integer or a string. If it's an array, it must be comprised of integers and strings. If the `regex` flag is passed, `path` can also be a regex (and if it's an array, it can also include regexes).
-
-The `regex` flag is used by `r.listen`, because listener paths can be (or include) regexes, unlike event paths.
-
-```javascript
-         return teishi.v (fun, [
-            ['path', path, ['array', 'integer', 'string'].concat (regex ? 'regex' : []), 'oneOf'],
-            ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf']
-         ]);
-      }
-```
-
-We define the third and last implementation helper function, `r.compare`. It takes two arguments, a `verb` or `path` element belonging to a listener and a `verb` or `path` element belonging to an event. This function is used later by `r.match` to compare verbs and paths.
+We define the third helper function, `r.compare`. It takes two arguments, a `verb` or `path` element belonging to a listener and a `verb` or `path` element belonging to an event. This function is used later by `r.match` to compare verbs and paths.
 
 ```javascript
       r.compare = function (rvp, evp) {
@@ -922,7 +971,7 @@ If we're here, it means that both elements are either strings or integers. The o
       }
 ```
 
-We define `r.logpush`, a helper function which adds log entries to `r.log` and is only invoked by `r.say`. The function takes five arguments, most of which are self-explanatory. `from`, the first argument, indicates the id of a previous event that triggered the current one; and `id`, the second argument, represents the id of the event being logged.
+We define `r.logpush`, the fourth and last helper function, which adds log entries to `r.log` and is only invoked by `r.say`. The function takes five arguments, most of which are self-explanatory. `from`, the first argument, indicates the id of a previous event that triggered the current one; and `id`, the second argument, represents the id of the event being logged.
 
 ```javascript
       r.logpush = function (from, id, verb, path, args) {
@@ -935,16 +984,10 @@ If `r.log` is not falsy (which could happen if the user sets `r.log` to `false` 
       }
 ```
 
-We now define `r.mill`, the implementation function that represents the core engine of the library. This function is invoked by `r.say`. The function takes a context (`x`) plus other yet unspecified arguments.
+We now define `r.mill`, the implementation function that represents the core engine of the library. This function is invoked by `r.say`. The function takes a single argument, `args`, which is an array with the context (`x`) plus other optional arguments.
 
 ```javascript
-      r.mill = function (x) {
-```
-
-We create an array `args` with the arguments to be passed to `r.mill` and which will be passed in turn to matching listener functions. The first element of `args` will be `x` (which already contains `from`, `verb`, `path` and `args`).
-
-```javascript
-         var args = dale.go (arguments, function (v) {return v});
+      r.mill = function (args) {
 ```
 
 We define an `inner` function that will execute each of the listeners matching the event in turn. `matching`, its sole argument, must be an array containing listeners.
@@ -1003,7 +1046,7 @@ Why does `inner` avoid calling itself to process the next listener if `lfun` ret
 The last thing left to do is to call `inner` with the matching listeners. For this, we invoke `r.match` with the `verb`, `path` and the list of listeners. We then invoke `r.sort` on the output of `r.match`, so that the listeners are placed in the right order.
 
 ```javascript
-         inner (r.sort (r.match (x.verb, x.path, r.listeners)));
+         inner (r.sort (r.match (args [0].verb, args [0].path, r.listeners)));
       }
 ```
 
@@ -1027,6 +1070,11 @@ We iterate the `listeners`.
          dale.go (listeners, function (listener) {
 ```
 
+If the listener is disabled, we ignore it.
+
+```javascript
+            if (listener.disabled) return;
+```
 If the listener contains a `match` function, we use that function to determine whether the listener matches the event. We invoke that function passing the listener and an object with `verb` and `path`. Depending on whether that function returned `true` or not, we push the `listener` to `matching`; in any case, we're done processing this particular listener.
 
 ```javascript
@@ -1090,8 +1138,11 @@ We apply `sort` on `matching`, using a custom sort function. Notice that we modi
 
 We sort the listeners based on their `priority` value. If no `priority` is defined, we'll consider the listener to have a `priority` of 0. The higher the priority, the closer a listener will be to the beginning of the array.
 
+If both priorities are the same, we disambiguate by giving priority to the listener with the lower `index`. Since oldest listeners have a lower index, given the same priority, the older listener will get matched first.
+
 ```javascript
-            return (b.priority || 0) - (a.priority || 0);
+            var priority = (b.priority || 0) - (a.priority || 0);
+            return priority !== 0 ? priority : a.index - b.index;
          });
       }
 ```

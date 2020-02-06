@@ -1,5 +1,5 @@
 /*
-recalc - v4.0.3
+recalc - v4.1.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -26,28 +26,33 @@ Please refer to readme.md to read the annotated source.
 
       // *** FRONTEND ***
 
-      var r = {};
-
-      r.listeners = {};
-      r.store     = store || {};
-      r.log       = [];
+      var r = {
+         listeners: {},
+         store:     store || {},
+         log:       [],
+         error:     clog,
+         count:     0
+      }
 
       r.say = function () {
 
-         var x = type (arguments [0]) === 'object' ? arguments [0] : undefined;
+         var x    = type (arguments [0]) === 'object' ? arguments [0] : undefined;
          var verb = arguments [x ? 1 : 0];
          var path = arguments [x ? 2 : 1];
 
          if (teishi.simple (path)) path = [path];
 
-         if (teishi.stop ('r.say', [
+         if (! r.prod && teishi.stop ('r.say', [
             ['context', x, ['object', 'undefined'], 'oneOf'],
             [x !== undefined, [function () {
                return ['x.from', x.from, ['string', 'undefined'], 'oneOf'];
             }]],
-            ['verb', verb, 'string'],
-            r.isPath (path, 'r.say')
-         ])) return false;
+            ['verb', verb, 'string']
+         ], function (error) {
+            r.error (x, 'r.say', error);
+         })) return false;
+
+         if (! r.prod && ! r.isPath (path)) return r.error (x, 'r.say', 'Invalid path. Arguments:', {verb: verb, path: path});
 
          var oargs = arguments;
          var args  = arguments.length === (x ? 3 : 2) ? undefined : dale.go (dale.times (arguments.length - (x ? 3 : 2), x ? 3 : 2), function (k) {
@@ -57,14 +62,14 @@ Please refer to readme.md to read the annotated source.
          var from = x ? x.from : undefined;
          x = {from: 'E' + r.random (), verb: verb, path: path, args: args};
          r.logpush (from, x.from, verb, path, args);
-         r.mill.apply (null, args === undefined ? [x] : [x].concat (args));
+         r.mill (args === undefined ? [x] : [x].concat (args));
          return x.from;
       }
 
       r.listen = function () {
 
          var options, lfun = arguments [arguments.length - 1];
-         if (arguments.length < 2) return clog ('r.listen', 'Too few arguments passed to r.listen');
+         if (arguments.length < 2) return r.error ('r.listen', 'Too few arguments passed to r.listen');
          if (arguments.length === 2) options = arguments [0];
          else {
             options      = arguments.length === 3 ? {} : arguments [2];
@@ -74,34 +79,39 @@ Please refer to readme.md to read the annotated source.
 
          if (teishi.simple (options.path)) options.path = [options.path];
 
-         if (teishi.stop ('r.listen', [
+         if (! r.prod && teishi.stop ('r.listen', [
             ['options',   options, 'object'],
             ['keys of options', dale.keys (options), ['verb', 'path', 'id', 'parent', 'priority', 'burn', 'match'], 'eachOf', teishi.test.equal],
             function () {return [
-               ['options.verb', options.verb, ['string', 'regex'], 'oneOf'],
-               r.isPath (options.path, 'r.listen', true),
+               ['options.verb',     options.verb,     ['string', 'regex'],                'oneOf'],
                ['options.id',       options.id,       ['string', 'integer', 'undefined'], 'oneOf'],
                ['options.parent',   options.parent,   ['string', 'integer', 'undefined'], 'oneOf'],
                ['options.priority', options.priority, ['undefined', 'integer'],           'oneOf'],
                ['options.burn',     options.burn,     ['undefined', 'boolean'],           'oneOf'],
-               ['options.match',    options.match,    ['undefined', 'function'], 'oneOf']
+               ['options.match',    options.match,    ['undefined', 'function'],          'oneOf']
             ]},
             ['listener function', lfun, 'function']
-         ])) return false;
+         ], function (error) {
+            r.error ('r.listen', error);
+         })) return false;
 
-         if (options.id) {
-            if (r.listeners [options.id]) return clog ('r.listen', 'A listener with id', options.id, 'already exists.');
+         if (! r.prod && ! r.isPath (options.path, true)) return r.error ('r.listen', 'Invalid path. Options:', options);
+
+         if (options.id !== undefined) {
+            options.id += '';
+            if (! r.prod && r.listeners [options.id]) return r.error ('r.listen', 'A listener with id', options.id, 'already exists.');
          }
          else options.id = r.random ();
          options.lfun = lfun;
+         options.index = r.count++;
 
          r.listeners [options.id] = options;
          return options.id;
       }
 
       r.forget = function (id, fun) {
-         if (fun !== undefined && type (fun) !== 'function') return clog ('Second argument to r.forget must be a function or undefined.');
-         if (! r.listeners [id]) return clog ('listener', id, 'does not exist.');
+         if (! r.prod && fun !== undefined && type (fun) !== 'function') return r.error ('r.forget', 'Second argument to r.forget must be a function or undefined. Id is:', id);
+         if (! r.prod && ! r.listeners [id])                             return r.error ('r.forget', 'Listener', id, 'does not exist.');
          var listener = r.listeners [id];
          delete r.listeners [id];
          if (fun) fun (listener);
@@ -112,11 +122,11 @@ Please refer to readme.md to read the annotated source.
 
       // *** INTERNALS ***
 
-      r.isPath = function (path, fun, regex) {
-         return teishi.v (fun, [
+      r.isPath = function (path, regex) {
+         return teishi.v ([
             ['path', path, ['array', 'integer', 'string'].concat (regex ? 'regex' : []), 'oneOf'],
             ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf']
-         ]);
+         ], function () {});
       }
 
       r.random = function () {
@@ -133,9 +143,7 @@ Please refer to readme.md to read the annotated source.
          if (r.log) r.log.push ({t: teishi.time (), from: from, id: id, verb: verb, path: path, args: args});
       }
 
-      r.mill = function (x) {
-
-         var args = dale.go (arguments, function (v) {return v});
+      r.mill = function (args) {
 
          var inner = function (matching) {
 
@@ -151,7 +159,7 @@ Please refer to readme.md to read the annotated source.
             if (type (listener.lfun.apply (null, args)) !== 'function') inner (matching);
          }
 
-         inner (r.sort (r.match (x.verb, x.path, r.listeners)));
+         inner (r.sort (r.match (args [0].verb, args [0].path, r.listeners)));
       }
 
       r.match = function (verb, path, listeners) {
@@ -159,6 +167,8 @@ Please refer to readme.md to read the annotated source.
          var matching = [];
 
          dale.go (listeners, function (listener) {
+
+            if (listener.disabled) return;
 
             if (listener.match) return listener.match (listener, {verb: verb, path: path}) === true ? matching.push (listener) : undefined;
 
@@ -176,7 +186,8 @@ Please refer to readme.md to read the annotated source.
 
       r.sort = function (matching) {
          return matching.sort (function (a, b) {
-            return (b.priority || 0) - (a.priority || 0);
+            var priority = (b.priority || 0) - (a.priority || 0);
+            return priority !== 0 ? priority : a.index - b.index;
          });
       }
 

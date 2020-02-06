@@ -1,5 +1,5 @@
 /*
-recalc - v4.0.3
+recalc - v4.1.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -33,7 +33,7 @@ To run the tests:
    R.perf = true;
 
    var error  = function (r, error) {
-      clog ('DEBUG', {
+      r.error ('DEBUG', {
          store:  r.store,
          listeners: r.listeners
       });
@@ -217,6 +217,69 @@ To run the tests:
       r.say ('do', 'it');
 
       if (r.store.value !== 'abc') return error (r, 'Filter priority 2 error.');
+   });
+
+   tests.push (function () {
+      var r = R ();
+
+      dale.go ([
+         ['do', 'it', {priority: 1}, function () {r.store.value += 'b'}],
+         ['do', 'it', {priority: 2}, function () {r.store.value =  'a'}],
+         ['do', 'it', {priority: 1}, function () {r.store.value += 'c'}]
+      ], function (v) {
+         r.listen.apply (null, v);
+      });
+
+      r.say ('do', 'it');
+
+      if (r.store.value !== 'abc') return error (r, 'Filter priority 3 error.');
+   });
+
+   tests.push (function () {
+      var r = R ();
+
+      dale.go ([
+         ['do', 'it', function () {r.store.value =  'a'}],
+         ['do', 'it', {id: 2}, function () {r.store.value += 'b'}],
+         ['do', 'it', function () {r.store.value += 'c'}]
+      ], function (v) {
+         r.listen.apply (null, v);
+      });
+
+      r.say ('do', 'it');
+
+      if (r.store.value !== 'abc') return error (r, 'Sorting test with numeric id.');
+   });
+
+   tests.push (function () {
+      var r = R ();
+
+      dale.go ([
+         ['do', 'it', {id: 0}, function () {r.store.value =  'a'}],
+         ['do', 'it', {id: ''}, function () {r.store.value += 'b'}]
+      ], function (v) {
+         r.listen.apply (null, v);
+      });
+
+      if (! teishi.eq (dale.keys (r.listeners).sort (), ['', '0'])) return error (r, 'Valid falsy id values not recognized.');
+   });
+
+   tests.push (function () {
+      var r = R ();
+
+      dale.go ([
+         ['do', 'it', function () {r.store.value =  'a'}],
+         ['do', 'it', {id: 2}, function () {r.store.value += 'b'}],
+         ['do', 'it', function () {r.store.value += 'c'}]
+      ], function (v) {
+         r.listen.apply (null, v);
+      });
+
+      r.listeners ['2'].disabled = true;
+
+      r.say ('do', 'it');
+
+      if (r.store.value !== 'ac') return error (r, 'Disabled listener was matched.');
    });
 
    tests.push (function () {
@@ -564,6 +627,29 @@ To run the tests:
       if (r.log !== false) return error (r, 'Disabled r.log wasn\'t disabled.');
    });
 
+   var benchmark = function () {
+      var T = {dev: {listen: 0, say: 0}, prod: {listen: 0, say: 0}};
+      var run = function (prod) {
+         var t = teishi.time (), r = R ();
+         r.prod = prod;
+         dale.go (dale.times (50), function (v) {
+            r.listen (v % 2 === 0 ? 'a' : 'b', {0: [], 1: ['c'], 2: ['c', 'd'], 3: ['e', 'f']} [v % 4], {priority: v % 7}, function () {});
+         });
+         T [prod ? 'prod' : 'dev'].listen += teishi.time () - t;
+         t = teishi.time ();
+         dale.go (dale.times (100), function (v) {
+            r.say (v % 2 === 0 ? 'a' : 'b', {0: [], 1: ['c'], 2: ['c', 'd'], 3: ['e', 'f']} [v % 4], {priority: v % 7});
+         });
+         T [prod ? 'prod' : 'dev'].say += teishi.time () - t;
+         t = teishi.time ();
+      }
+      dale.go (dale.times (10), function (v) {
+         run (v % 2 === 0);
+      });
+
+      clog ('Benchmark', T);
+   }
+
    tests.push (function () {
 
       var r = R (), counter;
@@ -589,13 +675,14 @@ To run the tests:
          if (r.store.value !== 'onetwothree') return error (r, 'Async sequence wasn\'t executed.');
          if (isNode) clog  ('Success', 'All tests were successful!');
          else        alert ('All tests were successful!');
+         benchmark ();
       }, 500);
       dale.go ([
          function (x) {
             setTimeout (function () {
                r.store.value = 'one';
                x.cb ();
-            }, 100);
+            }, 1);
             return x.cb;
          },
          function (s) {
@@ -605,7 +692,7 @@ To run the tests:
             setTimeout (function () {
                r.store.value += 'three';
                x.cb ();
-            }, 100);
+            }, 1);
             return x.cb;
          },
          function () {

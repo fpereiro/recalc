@@ -368,7 +368,7 @@ If you pass a function as the second argument to `r.forget`, the listener being 
 
 ### `r.count`
 
-For the sake of completeness, we mention a seventh element, `r.count`, which is a mere counter variable to keep track of how many listeners we added so far. The `index` variable added by `r.listen` to each listener references and increments `r.count`. This is solely for the purpose of disambiguating the execution order of listeners with the same priority.
+For the sake of completeness, we mention a seventh element, `r.count`, which is a mere counter variable to keep track of how many listeners we added so far. The `index` variable added by `r.listen` to each listener references and increments `r.count`. This is solely for the purpose of disambiguating the execution order of listeners that have the same priority.
 
 ### listener functions
 
@@ -488,7 +488,7 @@ Finally, if you want to turn off logging, you can always do so by setting `r.log
 
 ### `r.prod` and `r.error`
 
-In addition to the six elements of a recalc instance, there's two more that you can optionally use.
+In addition to the six main elements of a recalc instance, there's two more that you can optionally use.
 
 The first one is `r.prod`. If you set this flag to `true`, all the recalc functions will stop performing validations. This can be useful to speed up a thoroughly debugged application - you can roughly expect to save execution time by ~20% when invoking `r.say` and by ~90% when invoking `r.listen`. Please be aware that if you turn on `r.prod` and there's an error in your code, you'll experience either an exception or unexpected behavior, so be sure to turn this on when you are very confident of your code.
 

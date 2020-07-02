@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v5.0.0, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v5.0.1, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@f93f247a01a08e31658fa41f3250f8bbfb3d9080/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@c77e53d1cfb7666ad40b0c6000de5d94d3199a88/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -148,6 +148,7 @@ Every event has two properties:
 
 - A `verb`, which is a string. For example: `'get'`, `'set'` or `'someverb'`.
 - A `path`, which can be either a string, an integer, or an array with zero or more strings or integers. For example, `'hello'`, `1`, or `['hello', '1']`. If you pass a single string or integer, it will be interpreted as an array containing that element (for example, `'hello'` is considered to be `['hello']` and `0` is considered to be `[0]`).
+- Optional extra arguments of any type (we will refer to them as `args` later). These arguments will be passed to matching responders.
 
 The combination of a verb plus a path seems versatile enough to serve as a general purpose way of building an event system. It works well for [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) and it will probably work well for us too.
 
@@ -258,7 +259,7 @@ Let's see now which `options` can be passed to a responder. `options` All of the
 - `id`: a string or integer that will uniquely identify a responder. If you don't pass one, `r.respond` will generate one for you. This `id` will be used as the key where the responder is bound - for example, if `options.id === 'hello'`, the responder will be stored at `r.responders.hello`. If you pass an `id` that's already being used by another responder, an error will be printed and `r.respond` will return `false`. If `id` is a string, it cannot be an `L` followed by digits (or an `E` followed by digits), since those ids are used by recalc when creating responders (without ids) and event ids (in general).
 - `parent`: a string or integer that will represent the `id` of this responder. By default this is `undefined`. The purpose of this will be explained below when we explain `r.forget`.
 - `burn`: a boolean value. By default this is `undefined`. When you set it to `true`, the responder will auto-destroy after being matched a single time. This allows you to create one-off events that later disappear, hence allowing you to keep clean the event space.
-- `match`: a function that is used to determine whether the responder matches a given event. This function works as a bypass to the standard matching logic defined in `r.match`. This function receives two arguments: 1) an object of the form `{verb: ..., path: ..., args: [...]}` which correspond to those of the event being called. If the event was called with no `args`, `args` will be an empty array. 2) the `responder` itself. This function must return `true` to indicate that the given event matches the responder; otherwise, the responder won't be matched for that particular event.
+- `match`: a function that is used to determine whether the responder matches a given event. This function works as a bypass to the standard matching logic defined in `r.match`. This function receives two arguments: 1) an object of the form `{verb: ..., path: ..., args: [...]}` which correspond to those of the event being called. If the event was called with no `args` (extra arguments), `args` will be an empty array. 2) the `responder` itself. This function must return `true` to indicate that the given event matches the responder; otherwise, the responder won't be matched for that particular event.
 - `priority`: an integer value. By default this is `undefined` (which will be considered as a priority of `0`). The higher the value, the sooner this responder will be matched, compared to other responders that also were matched. You can also use negative values.
 
 This last property reminds us that it is perfectly normal to have more than one responder matching a certain event. `priority` simply lets us make certain responders to be matched ahead of others. This allows for sophisticated (yet necessary) constructs like view redrawing, where some responders have to be called ahead of others to prevent unnecessary operations. As of recalc >= v4.1.0, responders of equal priority are run first by the order in they were created - older responders are matched before new ones (previous versions matched responders of equal priority in arbitrary order). To keep track of which responders were created first, an `index` parameter is added to each `responder` - the lower the `index`, the earlier the responder was created.
@@ -399,7 +400,7 @@ Regarding control, if your responder function is synchronous, there's nothing to
 Let's say that you have a responder function that executes an asynchronous operation. The proper way to write it is like this:
 
 ```
-r.call ('fire', 'hello', function (x) {
+r.respond ('fire', 'hello', function (x) {
    asyncOperation ('foo', 'bar', function () {
       x.cb ();
    });
@@ -503,7 +504,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v5.0.0
+recalc - v5.0.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 

@@ -1,6 +1,6 @@
 {
    "name": "recalc",
-   "version": "5.0.0",
+   "version": "5.0.1",
    "description": "Functional side effects.",
    "dependencies": {
       "dale":   "6.0.2",
@@ -13,7 +13,7 @@
       "type": "Public Domain",
       "url": "http://github.com/fpereiro/recalc#license"
    }],
-   "keywords": ["data binding", "reactive", "autopoiesis", "functional", "side effects"],
+   "keywords": ["data binding", "reactive", "autopoiesis", "functional", "side effects", "event"],
    "repository" : {
       "type": "git",
       "url": "http://github.com/fpereiro/recalc.git"

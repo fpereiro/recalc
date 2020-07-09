@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@f93f247a01a08e31658fa41f3250f8bbfb3d9080/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@fc00fcc1c9c6353302fe6561fbdc0faf6db9d314/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -665,7 +665,7 @@ We define two local variables. First, `oargs`, which is a mere reference to `arg
 
 Notice that if `x` was passed, extra arguments will be those starting with index 3 (fourth element and above), while if `x` wasn't passed, extra arguments will be those starting with index 2 (third element and above).
 
-We define a local variable `from` and set it to either `x.responder.id/x.from` (if `x.responder` is present) or `x.from`, only if `x` is present. If present, this will represent the id of a previous responder (or a previous event) that is calling the current event. If `x.responder` is present, `x.responder.id` will be defined, and so will be `x.from` (since a listener can only be matched by an event, and events always have `ids`).
+We define a local variable `from` and set it to either `x.responder.id/x.from` (if `x.responder` is present) or `x.from`, only if `x` is present. If present, this will represent the id of a previous responder (or a previous event) that is calling the current event. If `x.responder` is present, `x.responder.id` will be defined, and so will be `x.from` (since a responder can only be matched by an event, and events always have `ids`).
 
 ```javascript
          var from = x ? (x.responder ? (x.responder.id + '/' + x.from) : x.from) : undefined;

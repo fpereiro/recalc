@@ -1,5 +1,5 @@
 /*
-recalc - v5.0.1
+recalc - v5.0.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -59,7 +59,7 @@ Please refer to readme.md to read the annotated source.
             return oargs [k];
          });
 
-         var from = x ? (x.responder ? x.responder.id : x.from) : undefined;
+         var from = x ? (x.responder ? (x.responder.id + '/' + x.from) : x.from) : undefined;
          x = {from: 'E' + r.count.e++, verb: verb, path: path, args: args};
          r.logpush (from, x.from, verb, path, args);
          r.mill (args === undefined ? [x] : [x].concat (args));

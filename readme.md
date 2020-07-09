@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v5.0.1, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v5.0.2, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@f93f247a01a08e31658fa41f3250f8bbfb3d9080/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@d65a28c0a54dfcac457c97976ed9f5c7031f620a/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -457,13 +457,13 @@ The invocation to `r.call` from within the `rfun` will return another id (let's 
 
 ```
 [
-   {id: 'id1',  from: undefined, verb: 'hello',   path: ['there'],   t: ..., args: undefined},
-   {id: 'vamo', from: 'id1',     verb: 'hello',   path: ['there'],   t: ..., args: undefined},
-   {id: 'id2',  from: 'vamo',    verb: 'goodbye', path: ['goodbye'], t: ..., args: undefined},
+   {id: 'id1',  from: undefined,  verb: 'hello',   path: ['there'],   t: ..., args: undefined},
+   {id: 'vamo', from: 'id1',      verb: 'hello',   path: ['there'],   t: ..., args: undefined},
+   {id: 'id2',  from: 'vamo/id1', verb: 'goodbye', path: ['goodbye'], t: ..., args: undefined},
 ]
 ```
 
-As you can see, the log for `id2` will mark that this event came *from* `vamo`, which in turn came from `id1`.
+As you can see, the log for `id2` will mark that this event came *from* `vamo/id1`, which denotes that it was called from the responder with `id` `vamo`, which in turn was matched by event `id1`. When an event is called by a responder which in turn was matched by a previous event, recalc puts the `id` of the responder followed by a slash and the `id` of the previous event. This is necessary when a responder is matched multiple times - by specifying the `id` of the event that matched the responder, the chain of execution can be disambiguated.
 
 Any `rfuns` matched by `id2` will receive `id2` as its `x.from`, and if you pass the context to further event invocations, you'll have longer chains of dependencies. In this way, you will have the raw data to track complex (and often asynchronous) events, which can be useful in many applications.
 
@@ -504,7 +504,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v5.0.1
+recalc - v5.0.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -665,10 +665,10 @@ We define two local variables. First, `oargs`, which is a mere reference to `arg
 
 Notice that if `x` was passed, extra arguments will be those starting with index 3 (fourth element and above), while if `x` wasn't passed, extra arguments will be those starting with index 2 (third element and above).
 
-We define a local variable `from` and set it to either `x.responder.id` or `x.from`, only if `x` is present. If present, this will represent the id of a previous responder (or a previous event) that is calling the current event.
+We define a local variable `from` and set it to either `x.responder.id/x.from` (if `x.responder` is present) or `x.from`, only if `x` is present. If present, this will represent the id of a previous responder (or a previous event) that is calling the current event. If `x.responder` is present, `x.responder.id` will be defined, and so will be `x.from` (since a listener can only be matched by an event, and events always have `ids`).
 
 ```javascript
-         var from = x ? (x.responder ? x.responder.id : x.from) : undefined;
+         var from = x ? (x.responder ? (x.responder.id + '/' + x.from) : x.from) : undefined;
 ```
 
 We now set `x` to a brand new object with the following fields: `from`, with a freshly generated id prepended by an `E` (using and incrementing `r.count.e`); the `verb` and `path` received as arguments; and `args`, the array (or undefined) variable we just created above.

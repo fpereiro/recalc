@@ -1,5 +1,5 @@
 /*
-recalc - v5.0.1
+recalc - v5.0.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -467,8 +467,7 @@ To run the tests:
          var lid;
 
          var err = dale.stopNot (r.log, undefined, function (v, k) {
-            if (k === 0 && v.id !== id) return 'Passed x.from was ignored.';
-            if (k > 0 && v.from !== r.log [k - 1].id) return 'x.from chain has invalid id.';
+            if (! eq ([undefined, 'E1', 'E2', 'R1/E2', 'E3', 'R2/E3', 'E4', 'R3'] [k], v.from)) return 'r.log from mismatch.';
             if (! eq (['E1', 'E2', 'R1', 'E3', 'R2', 'E4', 'R3'] [k], v.id)) return 'r.log id mismatch.';
             if (! eq (['foo', 'a', 'a', 'a', 'a', 'a', 'a'] [k], v.verb)) return 'r.log verb mismatch.';
             if (! eq ([['bar'], ['b'], ['b'], ['c'], ['c'], ['d'], ['d']] [k], v.path)) return 'r.log path mismatch.';
@@ -480,28 +479,30 @@ To run the tests:
       });
 
       r.respond ('a', 'e', function (x) {
-         counter++;
+         var err = dale.stopNot (r.log.slice (7), undefined, function (v, k) {
+            if (! eq ([undefined, 'E5'] [k], v.from)) return 'r.log from mismatch.';
+            if (! eq (['E5', 'R4'] [k], v.id)) return 'r.log id mismatch.';
+            if (! eq (['a', 'a'] [k], v.verb)) return 'r.log verb mismatch.';
+            if (! eq ([['e'], ['e']] [k], v.path)) return 'r.log path mismatch.';
+            if (! eq ([[4], [4]] [k], v.args)) return 'r.log args mismatch.';
+         });
          var llog = teishi.last (r.log, 2);
          if (x.from !== 'E5') return error (r, 'Invalid x.from');
          if (llog.from !== undefined) return error (r, 'x.from broken chain was not broken.');
          if (llog.verb !== 'a' || ! eq (llog.path, ['e'])) return error (r, 'wrong items in x.from item from broken chain');
          r.call (x, 'b', 'a');
          r.call (x, 'b', 'b');
+
+         counter++;
       });
 
       r.respond ('b', 'a', function (x) {
-         var llog = teishi.last (r.log);
-         var blog = teishi.last (r.log, 2);
-         if (llog.from !== blog.id) return error (r, 'x.from not passed properly #1.');
-         if (llog.verb !== 'b' || ! eq (llog.path, ['a'])) return (r, 'x.from log contains invalid verb/path #1.');
+         if (x.from !== 'E6') return error (r, 'x.from not passed properly #1.');
          counter++;
       });
 
       r.respond ('b', 'b', function (x) {
-         var llog = teishi.last (r.log, 2);
-         var blog = teishi.last (r.log, 5);
-         if (llog.from !== blog.id) return error (r, 'x.from not passed properly #2.');
-         if (llog.verb !== 'b' || ! eq (llog.path, ['b'])) return (r, 'x.from log contains invalid verb/path #2.');
+         if (x.from !== 'E7') return error (r, 'x.from not passed properly #2.');
          counter++;
       });
 
@@ -650,16 +651,16 @@ To run the tests:
 
       r.respond ('c', [], function (x) {
          var err = dale.stopNot (r.log, undefined, function (v, k) {
-            if (! eq ([undefined, 'E1', 'R1', 'E2', 'R2', 'E3', 'R1', 'E4'] [k], v.from)) return 'r.log from mismatch when doing two calls from same fun #2.';
+            if (! eq ([undefined, 'E1', 'R1/E1', 'E2', 'R2/E2', 'E3', 'R1/E1', 'E4'] [k], v.from)) return 'r.log from mismatch when doing two calls from same fun #2.';
             if (! eq (['E1', 'R1', 'E2', 'R2', 'E3', 'R4', 'E4', 'R3'] [k], v.id)) return 'r.log id mismatch when doing two calls from same fun #2.';
-            if (! eq (['a', 'a', 'b', 'b', 'd', 'd', 'c', 'c'] [k], v.verb)) return 'r.log verb mismatch when doing two calls from same fun #1.';
+            if (! eq (['a', 'a', 'b', 'b', 'd', 'd', 'c', 'c'] [k], v.verb)) return 'r.log verb mismatch when doing two calls from same fun #2.';
          });
          if (err) return error (r, err);
       });
 
       r.respond ('d', [], function (x) {
          var err = dale.stopNot (r.log, undefined, function (v, k) {
-            if (! eq ([undefined, 'E1', 'R1', 'E2', 'R2', 'E3'] [k], v.from)) return 'r.log from mismatch when doing two calls from same fun #1.';
+            if (! eq ([undefined, 'E1', 'R1/E1', 'E2', 'R2/E2', 'E3'] [k], v.from)) return 'r.log from mismatch when doing two calls from same fun #1.';
             if (! eq (['E1', 'R1', 'E2', 'R2', 'E3', 'R4'] [k], v.id)) return 'r.log id mismatch when doing two calls from same fun #1.';
             if (! eq (['a', 'a', 'b', 'b', 'd', 'd'] [k], v.verb)) return 'r.log verb mismatch when doing two calls from same fun #1.';
          });

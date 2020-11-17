@@ -1,5 +1,5 @@
 /*
-recalc - v5.0.2
+recalc - v5.0.3
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -99,7 +99,7 @@ Please refer to readme.md to read the annotated source.
 
          if (options.id !== undefined) {
             options.id += '';
-            if (! r.prod && options.id.match (/^[R|E]\d+$/)) return r.error ('r.respond', 'If you pass an id for a responder, it cannot be an `L` or an `E` followed by digits, since that is the form that recalc gives to auto-generated ids.');
+            if (! r.prod && options.id.match (/^[R|E]\d+$/)) return r.error ('r.respond', 'If you pass an id for a responder, it cannot be an `R` or an `E` followed by digits, since that is the form that recalc gives to auto-generated ids.');
             if (! r.prod && r.responders [options.id])       return r.error ('r.respond', 'A responder with id', options.id, 'already exists.');
          }
          else options.id = 'R' + r.count.l;

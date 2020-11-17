@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v5.0.2, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v5.0.3, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@f93f247a01a08e31658fa41f3250f8bbfb3d9080/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@fc00fcc1c9c6353302fe6561fbdc0faf6db9d314/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -256,7 +256,7 @@ r.call ('bar', 'bach');
 
 Let's see now which `options` can be passed to a responder. `options` All of them are optional:
 
-- `id`: a string or integer that will uniquely identify a responder. If you don't pass one, `r.respond` will generate one for you. This `id` will be used as the key where the responder is bound - for example, if `options.id === 'hello'`, the responder will be stored at `r.responders.hello`. If you pass an `id` that's already being used by another responder, an error will be printed and `r.respond` will return `false`. If `id` is a string, it cannot be an `L` followed by digits (or an `E` followed by digits), since those ids are used by recalc when creating responders (without ids) and event ids (in general).
+- `id`: a string or integer that will uniquely identify a responder. If you don't pass one, `r.respond` will generate one for you. This `id` will be used as the key where the responder is bound - for example, if `options.id === 'hello'`, the responder will be stored at `r.responders.hello`. If you pass an `id` that's already being used by another responder, an error will be printed and `r.respond` will return `false`. If `id` is a string, it cannot be an `R` followed by digits (or an `E` followed by digits), since those ids are used by recalc when creating responders (without ids) and event ids (in general).
 - `parent`: a string or integer that will represent the `id` of this responder. By default this is `undefined`. The purpose of this will be explained below when we explain `r.forget`.
 - `burn`: a boolean value. By default this is `undefined`. When you set it to `true`, the responder will auto-destroy after being matched a single time. This allows you to create one-off events that later disappear, hence allowing you to keep clean the event space.
 - `match`: a function that is used to determine whether the responder matches a given event. This function works as a bypass to the standard matching logic defined in `r.match`. This function receives two arguments: 1) an object of the form `{verb: ..., path: ..., args: [...]}` which correspond to those of the event being called. If the event was called with no `args` (extra arguments), `args` will be an empty array. 2) the `responder` itself. This function must return `true` to indicate that the given event matches the responder; otherwise, the responder won't be matched for that particular event.
@@ -804,7 +804,7 @@ If `options.id` is not `undefined`, we first coerce it into a string (in case it
 ```javascript
          if (options.id !== undefined) {
             options.id += '';
-            if (! r.prod && options.id.match (/^[L|E]\d+$/)) return r.error ('r.respond', 'If you pass an id for a responder, it cannot be an `R` or an `E` followed by digits, since that is the form that recalc gives to auto-generated ids.');
+            if (! r.prod && options.id.match (/^[R|E]\d+$/)) return r.error ('r.respond', 'If you pass an id for a responder, it cannot be an `R` or an `E` followed by digits, since that is the form that recalc gives to auto-generated ids.');
             if (! r.prod && r.responders [options.id])       return r.error ('r.respond', 'A responder with id', options.id, 'already exists.');
          }
 ```

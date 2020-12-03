@@ -1,5 +1,5 @@
 /*
-recalc - v5.0.3
+recalc - v5.0.4
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -31,7 +31,7 @@ Please refer to readme.md to read the annotated source.
          store:     store || {},
          log:       [],
          error:     clog,
-         count:     {e: 1, l: 1}
+         count:     {e: 1, r: 1}
       }
 
       r.call = function () {
@@ -102,9 +102,9 @@ Please refer to readme.md to read the annotated source.
             if (! r.prod && options.id.match (/^[R|E]\d+$/)) return r.error ('r.respond', 'If you pass an id for a responder, it cannot be an `R` or an `E` followed by digits, since that is the form that recalc gives to auto-generated ids.');
             if (! r.prod && r.responders [options.id])       return r.error ('r.respond', 'A responder with id', options.id, 'already exists.');
          }
-         else options.id = 'R' + r.count.l;
+         else options.id = 'R' + r.count.r;
          options.rfun = rfun;
-         options.index = r.count.l++;
+         options.index = r.count.r++;
 
          r.responders [options.id] = options;
          return options.id;

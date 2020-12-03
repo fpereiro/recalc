@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v5.0.3, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v5.0.4, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@f93f247a01a08e31658fa41f3250f8bbfb3d9080/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@a69f0a8cf5d12b3b1614f689cac470baab703d77/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -81,7 +81,7 @@ From a functional perspective, this is tantamount to heresy. We're talking here 
 
 ## Programs as communication
 
-The deep pattern behind recalc (and event systems in general) is *communication*. More precisely, the [call and response pattern](https://en.wikipedia.org/wiki/Call_and_response]), which takes us to the origins of [information](https://en.wikipedia.org/wiki/The_Information:_A_History,_a_Theory,_a_Flood).
+The deep pattern behind recalc (and event systems in general) is *communication*. More precisely, the [call and response pattern](https://en.wikipedia.org/wiki/Call_and_response), which takes us to the origins of [information](https://en.wikipedia.org/wiki/The_Information:_A_History,_a_Theory,_a_Flood).
 
 By expressing computation as communication, some parts of the program perform *calls* and other parts of the program *respond* to those calls.
 
@@ -504,7 +504,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v5.0.3
+recalc - v5.0.4
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -582,10 +582,10 @@ We set `r.error` to `clog` (`teishi.clog`). By using `r.error` below to report e
          error:     clog,
 ```
 
-Finally we set `r.count` to an object with two keys `e` and `l`, each initialized to 1; we will use this variable to generate ids for events in `r.call` and in `r.respond` to register the order in which responders were added and optionally to generate responder ids.
+Finally we set `r.count` to an object with two keys `e` and `r`, each initialized to 1; we will use this variable to generate ids for events in `r.call` and in `r.respond` to register the order in which responders were added and optionally to generate responder ids.
 
 ```javascript
-         count:     {e: 1, l: 1}
+         count:     {e: 1, r: 1}
       }
 ```
 
@@ -809,10 +809,10 @@ If `options.id` is not `undefined`, we first coerce it into a string (in case it
          }
 ```
 
-If `options.id` is `undefined`, we generate an id of the form `R` followed by the current value of `r.count.l` (which is a number).
+If `options.id` is `undefined`, we generate an id of the form `R` followed by the current value of `r.count.r` (which is a number).
 
 ```javascript
-         else options.id = 'R' + r.count.l;
+         else options.id = 'R' + r.count.r;
 ```
 
 We place `rfun` within the `options` object.
@@ -821,10 +821,10 @@ We place `rfun` within the `options` object.
          options.rfun = rfun;
 ```
 
-We set `options.index` to the current value of `r.count.l`, and increment `r.count.l`.
+We set `options.index` to the current value of `r.count.r`, and increment `r.count.r`.
 
 ```javascript
-         options.index = r.count.l++;
+         options.index = r.count.r++;
 ```
 
 By this point, `options` contains all the information relevant for the responder - it is effectively the responder object. We now set it within `r.responders`.

@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v5.0.4, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v5.1.0, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@f93f247a01a08e31658fa41f3250f8bbfb3d9080/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@1542c9af41390a9a292fcea1587741c1809c2cfe/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -135,8 +135,6 @@ An important thing to notice is that the responders are stored outside of the gl
 ### `r.log`
 
 An array that contains all the events called and all responders matched. While not essential for recalc's functioning, it is of great help for writing and debugging applications based on recalc. Each of the elements of this array are of the form `{t: TIMESTAMP, id: STRING, from: STRING|UNDEFINED, verb: ..., path: ..., args: UNDEFINED|ARRAY}`. We'll see more of `r.log` in the last section of the readme.
-
-If you want to turn off logging, you can set `r.log` to `false` at the top of your application.
 
 ### `r.call`
 
@@ -469,7 +467,11 @@ Any `rfuns` matched by `id2` will receive `id2` as its `x.from`, and if you pass
 
 Two more things to have in mind: if you don't pass `x` to an invocation to `r.call` within a `rfun`, recalc has no way of knowing where that event came from and then the chain will be broken. The second one is that initial invocations of `r.call` (that happen on their own, without being the result of previous events) will naturally receive no context, since there's no context yet for them.
 
-Finally, if you want to turn off logging, you can always do so by setting `r.log` to `false`.
+Internally, recalc uses the function `B.addLog` to add elements to `B.log`. The function receives the log object that will be pushed to `B.log` and by default pushes it to `B.log`. This function can be overridden for different purposes:
+
+- If you want to turn off logging, you can set `r.addLog` to an empty function: `r.addLog = function () {};`.
+- You can override `r.addLog` to overwrite sensitive information of different entries, or ignore certain log entries altogether.
+- You can limit the size of `r.log` if it gets too large, either by not pushing further logs or by eliminating the first element of `B.log` before pushing a new one.
 
 ### `r.prod` and `r.error`
 
@@ -491,7 +493,7 @@ There's six other functions that support the usage functions. If you override th
 
 - `r.isPath`, a helper function to determine whether something is a valid `path`.
 - `r.compare`, a helper function for comparing a responder item (either the verb or one of the elements of the path) with a corresponding event item; this function is used by `r.match`.
-- `r.logpush`, a helper function that pushes a log entry to `r.log` as long as `r.log` is not `false`.
+- `r.addLog`, a helper function that pushes a log entry to `r.log` and can be overriden to customize logging.
 - `r.mill`, the function that gets executed by `r.call` when an event is called - it represents the core engine of the library.
 - `r.match`, the function in charge of matching an event with the relevant responders.
 - `r.sort`, the function that sorts the order of the matching responders that will be executed in response to a certain event.
@@ -504,7 +506,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v5.0.4
+recalc - v5.1.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -679,10 +681,10 @@ Notice that if `x` was passed to this invocation of `r.call`, we have already ov
          x = {from: 'E' + r.count.e++, verb: verb, path: path, args: args};
 ```
 
-We invoke a helper function, `r.logpush`, to add a log entry to `r.log`. We will cover this function later. This function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the current event being called, the `verb` and `path` received, and the `args` variable containing further arguments.
+We invoke a helper function, `r.addLog`, to add a log entry to `r.log`. We will cover this function later. This function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the current event being called, the `verb` and `path` received, and the `args` variable containing further arguments. Note we also pass a timestamp in the `t` field.
 
 ```javascript
-         r.logpush (from, x.from, verb, path, args);
+         r.addLog ({t: teishi.time (), from: from, id: x.from, verb: verb, path: path, args: args});
 ```
 
 We call an internal function, `r.mill`, passing it an array with all the arguments. If there are no extra arguments, we merely pass `x` wrapped in an array; otherwise, we pass an array with `x` plus all the extra arguments. Note that `x` already contains `verb` and `path`.
@@ -911,7 +913,7 @@ We return the result of invoking `teishi.v` with these rules. We also pass an em
       }
 ```
 
-We define the third helper function, `r.compare`. It takes two arguments, a `verb` or `path` element belonging to an event and a `verb` or `path` element belonging to a responder. This function is used later by `r.match` to compare verbs and paths.
+We define the second helper function, `r.compare`. It takes two arguments, a `verb` or `path` element belonging to an event and a `verb` or `path` element belonging to a responder. This function is used later by `r.match` to compare verbs and paths.
 
 ```javascript
       r.compare = function (eventItem, responderItem) {
@@ -936,16 +938,11 @@ If we're here, it means that both elements are either strings or integers. The o
       }
 ```
 
-We define `r.logpush`, the fourth and last helper function, which adds log entries to `r.log` and is invoked only by `r.call` and `r.mill`. The function takes five arguments, most of which are self-explanatory. `from`, the first argument, indicates the id of a previous event or responder that called the current event or matched the current responder; and `id`, the second argument, represents the id of the event being logged.
+We define `r.addLog`, the third and last helper function, which adds log entries to `r.log` and is invoked only by `r.call` and `r.mill`. The function takes a single argument, the log object to be pushed.
 
 ```javascript
-      r.logpush = function (from, id, verb, path, args) {
-```
-
-If `r.log` is not falsy (which could happen if the user sets `r.log` to `false` to avoid further logging), we push an entry to `r.log`. This entry contains seven items: `t` (a timestamp), `from`, `id`, `verb`, `path` and `args`. `from` can be either undefined or a string; args can be either `undefined` or an array with at least one element inside.
-
-```javascript
-         if (r.log) r.log.push ({t: teishi.time (), from: from, id: id, verb: verb, path: path, args: args});
+      r.addLog = function (log) {
+         r.log.push (log);
       }
 ```
 
@@ -993,10 +990,10 @@ If the responder does not exist, we ignore this responder and call `inner` recur
             if (! r.responders [responder.id]) return inner (matching);
 ```
 
-We invoke `r.logpush` to add a log entry to `r.log` for the matched responder. As before, this function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the responder being matched, the `verb` and `path` of the responder; if `args` were passed to the responder, we pass them as well, otherwise we pass `undefined` as the last argument to denote their abasence.
+We invoke `r.addLog` to add a log entry to `r.log` for the matched responder. As before, this function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the responder being matched, the `verb` and `path` of the responder; if `args` were passed to the responder, we pass them as well, otherwise we pass `undefined` as the last argument to denote their abasence.
 
 ```javascript
-            r.logpush (args [0].from, responder.id, responder.verb, responder.path, args.slice (1).length ? args.slice (1) : undefined);
+            r.addLog ({t: teishi.time (), from: args [0].from, id: responder.id, verb: responder.verb, path: responder.path, args: args.slice (1).length ? args.slice (1) : undefined});
 ```
 
 If the responder has the `burn` attribute, we invoke `r.forget` to remove it.

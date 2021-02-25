@@ -1,5 +1,5 @@
 /*
-recalc - v5.0.4
+recalc - v5.1.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -699,9 +699,15 @@ To run the tests:
       var r = R ();
 
       r.call ('a', 'b');
-      r.log = false;
+      var copy = teishi.copy (r.log);
+      r.addLog = function () {}
       r.call ('c', 'd');
-      if (r.log !== false) return error (r, 'Disabled r.log wasn\'t disabled.');
+      if (! eq (copy, r.log)) return error (r, 'Modified r.addLog was ignored #1.');
+      r.addLog = function (log) {
+         r.log.push ('foobar');
+      }
+      r.call ('e', 'f');
+      if (teishi.last (r.log) !== 'foobar') return error (r, 'Modified r.addLog was ignored #2.');
    });
 
    var benchmark = function () {

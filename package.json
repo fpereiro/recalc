@@ -1,6 +1,6 @@
 {
    "name": "recalc",
-   "version": "5.0.4",
+   "version": "5.1.0",
    "description": "Functional side effects.",
    "dependencies": {
       "dale":   "6.0.2",

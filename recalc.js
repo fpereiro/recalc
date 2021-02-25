@@ -1,5 +1,5 @@
 /*
-recalc - v5.0.4
+recalc - v5.1.0
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -61,7 +61,7 @@ Please refer to readme.md to read the annotated source.
 
          var from = x ? (x.responder ? (x.responder.id + '/' + x.from) : x.from) : undefined;
          x = {from: 'E' + r.count.e++, verb: verb, path: path, args: args};
-         r.logpush (from, x.from, verb, path, args);
+         r.addLog ({t: teishi.time (), from: from, id: x.from, verb: verb, path: path, args: args});
          r.mill (args === undefined ? [x] : [x].concat (args));
          return x.from;
       }
@@ -136,8 +136,8 @@ Please refer to readme.md to read the annotated source.
          return eventItem === responderItem;
       }
 
-      r.logpush = function (from, id, verb, path, args) {
-         if (r.log) r.log.push ({t: teishi.time (), from: from, id: id, verb: verb, path: path, args: args});
+      r.addLog = function (log) {
+         r.log.push (log);
       }
 
       r.mill = function (args) {
@@ -152,7 +152,7 @@ Please refer to readme.md to read the annotated source.
             var responder = matching.shift ();
             args [0].responder = responder;
             if (! r.responders [responder.id]) return inner (matching);
-            r.logpush (args [0].from, responder.id, responder.verb, responder.path, args.slice (1).length ? args.slice (1) : undefined);
+            r.addLog ({t: teishi.time (), from: args [0].from, id: responder.id, verb: responder.verb, path: responder.path, args: args.slice (1).length ? args.slice (1) : undefined});
             if (responder.burn) r.forget (responder.id);
             if (type (responder.rfun.apply (null, args)) !== 'function') inner (matching);
          }

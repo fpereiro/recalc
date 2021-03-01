@@ -402,7 +402,7 @@ r.respond ('fire', 'hello', function (x) {
    asyncOperation ('foo', 'bar', function () {
       x.cb ();
    });
-   return x.cb ();
+   return x.cb;
 });
 ```
 

@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v5.1.0, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v5.1.1, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@f93f247a01a08e31658fa41f3250f8bbfb3d9080/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@4c90479d6bf467c3fd3d5bd219ca26e2236c8f9d/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@??/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -506,7 +506,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v5.1.0
+recalc - v5.1.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -681,10 +681,10 @@ Notice that if `x` was passed to this invocation of `r.call`, we have already ov
          x = {from: 'E' + r.count.e++, verb: verb, path: path, args: args};
 ```
 
-We invoke a helper function, `r.addLog`, to add a log entry to `r.log`. We will cover this function later. This function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the current event being called, the `verb` and `path` received, and the `args` variable containing further arguments. Note we also pass a timestamp in the `t` field.
+We invoke a helper function, `r.addLog`, to add a log entry to `r.log`. We will cover this function later. This function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the current event being called, the `verb` and `path` received, and the `args` variable containing further arguments. Note we also pass a timestamp in the `t` field. Also note that we copy `args` in case they are modified later, so we have a snapshot of them at the moment we log this event.
 
 ```javascript
-         r.addLog ({t: teishi.time (), from: from, id: x.from, verb: verb, path: path, args: args});
+         r.addLog ({t: teishi.time (), from: from, id: x.from, verb: verb, path: path, args: teishi.copy (args)});
 ```
 
 We call an internal function, `r.mill`, passing it an array with all the arguments. If there are no extra arguments, we merely pass `x` wrapped in an array; otherwise, we pass an array with `x` plus all the extra arguments. Note that `x` already contains `verb` and `path`.
@@ -990,10 +990,10 @@ If the responder does not exist, we ignore this responder and call `inner` recur
             if (! r.responders [responder.id]) return inner (matching);
 ```
 
-We invoke `r.addLog` to add a log entry to `r.log` for the matched responder. As before, this function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the responder being matched, the `verb` and `path` of the responder; if `args` were passed to the responder, we pass them as well, otherwise we pass `undefined` as the last argument to denote their abasence.
+We invoke `r.addLog` to add a log entry to `r.log` for the matched responder. As before, this function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the responder being matched, the `verb` and `path` of the responder; if `args` were passed to the responder, we pass them as well, otherwise we pass `undefined` as the last argument to denote their abasence. Note that we copy `args` so that if they are modified later, we'll have a snapshot of them at the moment of logging.
 
 ```javascript
-            r.addLog ({t: teishi.time (), from: args [0].from, id: responder.id, verb: responder.verb, path: responder.path, args: args.slice (1).length ? args.slice (1) : undefined});
+            r.addLog ({t: teishi.time (), from: args [0].from, id: responder.id, verb: responder.verb, path: responder.path, args: args.slice (1).length ? teishi.copy (args.slice (1)) : undefined});
 ```
 
 If the responder has the `burn` attribute, we invoke `r.forget` to remove it.

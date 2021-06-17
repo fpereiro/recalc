@@ -1,5 +1,5 @@
 /*
-recalc - v5.1.0
+recalc - v5.1.1
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -509,6 +509,21 @@ To run the tests:
       r.call ({from: id}, 'a', 'b', 0);
 
       if (counter !== 6) return error (r, 'x.item sequence not executed fully.');
+   });
+
+   tests.push (function () {
+
+      var r = R ();
+
+      var args = [];
+
+      r.respond ('a', 'b', function () {});
+
+      r.call ('a', 'b', args);
+
+      args.push ('c');
+
+      if (r.log [0].args [0].length !== 0 || r.log [1].args [0].length !== 0) return error (r, 'args was not copied when added to r.log.');
    });
 
    tests.push (function () {

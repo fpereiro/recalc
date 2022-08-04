@@ -32,7 +32,7 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@31a9cf552dbaee79fb1c2b7d12c6fad20f987983/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@38b1fc1c5397b27d9162147fddad103a43e9b826/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`

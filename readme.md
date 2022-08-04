@@ -990,7 +990,7 @@ If the responder does not exist, we ignore this responder and call `inner` recur
             if (! r.responders [responder.id]) return inner (matching);
 ```
 
-We invoke `r.addLog` to add a log entry to `r.log` for the matched responder. As before, this function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the responder being matched, the `verb` and `path` of the responder; if `args` were passed to the responder, we pass them as well, otherwise we pass `undefined` as the last argument to denote their abasence. Note that we copy `args` so that if they are modified later, we'll have a snapshot of them at the moment of logging.
+We invoke `r.addLog` to add a log entry to `r.log` for the matched responder. As before, this function receives the `from` field from the old context (if present, otherwise it will be undefined), the id of the responder being matched, the `verb` and `path` of the responder; if `args` were passed to the responder, we pass them as well, otherwise we pass `undefined` as the last argument to denote their absence. Note that we copy `args` so that if they are modified later, we'll have a snapshot of them at the moment of logging.
 
 ```javascript
             r.addLog ({t: teishi.time (), from: args [0].from, id: responder.id, verb: responder.verb, path: responder.path, args: args.slice (1).length ? teishi.copy (args.slice (1)) : undefined});

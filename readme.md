@@ -8,7 +8,7 @@ recalc is a library for reasoning functionally about side effects. Its core idea
 
 ## Current status of the project
 
-The current version of recalc, v5.1.1, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
+The current version of recalc, v5.1.2, is considered to be *stable* and *complete*. [Suggestions](https://github.com/fpereiro/recalc/issues) and [patches](https://github.com/fpereiro/recalc/pulls) are welcome. Besides bug fixes, there are no future changes planned.
 
 recalc is part of the [ustack](https://github.com/fpereiro/ustack), a set of libraries to build web applications which aims to be fully understandable by those who use it.
 
@@ -31,8 +31,8 @@ Or you can use these links to the latest version - courtesy of [jsDelivr](https:
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/fpereiro/dale@3199cebc19ec639abf242fd8788481b65c7dc3a3/dale.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@f93f247a01a08e31658fa41f3250f8bbfb3d9080/teishi.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@f77c78a48a8e273ef2b363d63bca84b87aa3e422/recalc.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/teishi@31a9cf552dbaee79fb1c2b7d12c6fad20f987983/teishi.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/fpereiro/recalc@/recalc.js"></script>
 ```
 
 And you also can use it in node.js. To install: `npm install recalc`
@@ -48,8 +48,6 @@ recalc should work in any version of node.js (tested in v0.8.0 and above). Brows
 - Yandex 14.12 and above.
 
 The author wishes to thank [Browserstack](https://browserstack.com) for providing tools to test cross-browser compatibility.
-
-<a href="https://www.browserstack.com"><img src="https://bstacksupport.zendesk.com/attachments/token/kkjj6piHDCXiWrYlNXjKbFveo/?name=Logo-01.svg" width="150px" height="33px"></a>
 
 ## Philosophy
 
@@ -506,7 +504,7 @@ Below is the annotated source.
 
 ```javascript
 /*
-recalc - v5.1.1
+recalc - v5.1.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -553,10 +551,12 @@ We define a `main` function that will return a recalc object. A function returni
 
 The `store` can be `undefined`, an array or an object. By passing a `store` to `main`, the user can already initialize the store to have certain values.
 
+Note we pass `true` as the fourth argument to `teishi.stop`. We will do this for every invocation of `teishi.stop` and `teishi.v`, to tell teishi not to validate our validation rules. This will yield a (very small) performance improvement.
+
 ```javascript
       if (teishi.stop ([
          ['store', store, ['array', 'object', 'undefined'], 'oneOf']
-      ])) return;
+      ], undefined, true)) return;
 ```
 
 We create `r`, a local object which will be the sole thing returned by the constructor. We'll put everything inside of `r`.
@@ -646,7 +646,7 @@ If any part of the validation fails, we return `false`. Note we pass `r.error` a
 ```javascript
          ], function (error) {
             x ? r.error (x, 'r.call', error) : r.error ('r.call', error);
-         })) return false;
+         }, true)) return false;
 ```
 If `r.prod` is falsy, we check that `path` is valid through a helper function `r.isPath` that will return `true` or `false`. While we'll see the implementation of `r.isPath` later, this function makes sure that `path` is an array composed of strings and integers. In case of error, we print it through `r.error` and return `false`.
 
@@ -792,7 +792,7 @@ If any part of the validation fails, we return `false`. Note we pass `r.error` a
 ```javascript
          ], function (error) {
             r.error ('r.respond', error);
-         })) return false;
+         }, true)) return false;
 ```
 
 If `r.prod` is falsy, we validate `path` with `r.isPath`, which we'll define later. In this case, we consider a `path` as valid if it's an array composed of strings, integers and regexes (which is the reason for passing `true` as the second argument to `r.isPath`). If there's an error, we print it through `r.error` and return `false`.
@@ -909,7 +909,7 @@ We return the result of invoking `teishi.v` with these rules. We also pass an em
          return teishi.v ([
             ['path', path, ['array', 'integer', 'string'].concat (regex ? 'regex' : []), 'oneOf'],
             ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf']
-         ], function () {});
+         ], function () {}, true);
       }
 ```
 

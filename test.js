@@ -1,5 +1,5 @@
 /*
-recalc - v5.1.1
+recalc - v5.1.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -44,7 +44,7 @@ To run the tests:
    R.perf = true;
 
    var error  = function (r, error) {
-      r.error ('DEBUG', {
+      r.error ('DEBUG ERROR', {
          store:  r.store,
          responders: r.responders
       });
@@ -726,26 +726,40 @@ To run the tests:
    });
 
    var benchmark = function () {
-      var T = {dev: {respond: 0, call: 0}, prod: {respond: 0, call: 0}};
+      // We determine how many times a while loop with some teishi validation can be run in 50ms, to set the number of iterations for the benchmark.
+      // This allows for running the benchmarking code more on faster engines and less on slower engines.
+      // Note: we use teishi and not recalc to set up the baseline; otherwise, if we improved recalc's performance, the benchmark wouldn't be fair since it would perform more baseline iterations.
+      var times = 0, now = teishi.time ();
+      while (new Date ().getTime () <= now + 50) {
+         var input = ['a', 'b', 'c'];
+         teishi.v ([
+            ['input', input, 'array'],
+            ['input.length', input.length, 3, teishi.test.equal],
+            ['input element', input, ['a', 'b', 'c'], 'eachOf', teishi.test.equal]
+         ]);
+         times++;
+      }
+      // We divide this by 100 to determine the number of calls to B.respond and by 10 to determine the number of calls to B.call
+      var perf = {dev: {respond: 0, call: 0}, prod: {respond: 0, call: 0}, timesRespond: Math.round (times / 100), timesCall: Math.round (times / 10)};
       var run = function (prod) {
          var t = teishi.time (), r = R ();
          r.prod = prod;
-         dale.go (dale.times (50), function (v) {
+         dale.go (dale.times (perf.timesRespond), function (v) {
             r.respond (v % 2 === 0 ? 'a' : 'b', {0: [], 1: ['c'], 2: ['c', 'd'], 3: ['e', 'f']} [v % 4], {priority: v % 7}, function () {});
          });
-         T [prod ? 'prod' : 'dev'].respond += teishi.time () - t;
+         perf [prod ? 'prod' : 'dev'].respond += teishi.time () - t;
          t = teishi.time ();
-         dale.go (dale.times (100), function (v) {
+         dale.go (dale.times (perf.timesCall), function (v) {
             r.call (v % 2 === 0 ? 'a' : 'b', {0: [], 1: ['c'], 2: ['c', 'd'], 3: ['e', 'f']} [v % 4], {priority: v % 7});
          });
-         T [prod ? 'prod' : 'dev'].call += teishi.time () - t;
+         perf [prod ? 'prod' : 'dev'].call += teishi.time () - t;
          t = teishi.time ();
       }
       dale.go (dale.times (10), function (v) {
          run (v % 2 === 0);
       });
 
-      clog ('Benchmark', T);
+      clog ('Benchmark', perf);
    }
 
    tests.push (function () {

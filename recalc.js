@@ -1,5 +1,5 @@
 /*
-recalc - v5.1.1
+recalc - v5.1.2
 
 Written by Federico Pereiro (fpereiro@gmail.com) and released into the public domain.
 
@@ -22,7 +22,7 @@ Please refer to readme.md to read the annotated source.
 
       if (teishi.stop ([
          ['store', store, ['array', 'object', 'undefined'], 'oneOf']
-      ])) return;
+      ], undefined, true)) return;
 
       // *** FRONTEND ***
 
@@ -50,7 +50,7 @@ Please refer to readme.md to read the annotated source.
             ['verb', verb, 'string']
          ], function (error) {
             x ? r.error (x, 'r.call', error) : r.error ('r.call', error);
-         })) return false;
+         }, true)) return false;
 
          if (! r.prod && ! r.isPath (path)) return x ? r.error (x, 'r.call', 'Invalid path. Arguments:', {verb: verb, path: path}) : r.error ('r.call', 'Invalid path. Arguments:', {verb: verb, path: path});
 
@@ -93,7 +93,7 @@ Please refer to readme.md to read the annotated source.
             ['responder function', rfun, 'function']
          ], function (error) {
             r.error ('r.respond', error);
-         })) return false;
+         }, true)) return false;
 
          if (! r.prod && ! r.isPath (options.path, true)) return r.error ('r.respond', 'Invalid path. Options:', options);
 
@@ -127,7 +127,7 @@ Please refer to readme.md to read the annotated source.
          return teishi.v ([
             ['path', path, ['array', 'integer', 'string'].concat (regex ? 'regex' : []), 'oneOf'],
             ['path', path,          ['integer', 'string'].concat (regex ? 'regex' : []), 'eachOf']
-         ], function () {});
+         ], function () {}, true);
       }
 
       r.compare = function (eventItem, responderItem) {
